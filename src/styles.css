@@ -43,3 +43,91 @@
 @keyframes demo-swipe-disk{0%,40%,100%{left:20%;bottom:37px}55%{left:50%;bottom:65px}70%,90%{left:80%;bottom:16px}}
 @media(max-width:480px){.control-dialog{padding:20px}.control-options{flex-wrap:wrap}.control-options .option{flex:1 1 100px}.game-meta{gap:12px}.game-meta .control-button{margin-left:auto}.game-meta .button-settings{margin-left:0}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}.control-demo *{animation:none!important}.control-demo .demo-pointer{left:50%;bottom:65px}.demo-track::after{content:'→';position:absolute;left:50%;top:12px;transform:translateX(-50%);font-size:28px;color:#718665}}
+
+/* Shared modal: header and actions stay visible; only the body scrolls. */
+body.modal-open{overflow:hidden}
+.app-dialog{padding:0;max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:visible}
+.app-dialog[open]{display:flex;flex-direction:column}
+.app-dialog .dialog-heading{flex-shrink:0;padding:18px 20px;gap:12px;border-bottom:1px solid #e9eee3}
+.app-dialog .dialog-heading h2{margin:0;flex:1;font-size:22px;min-width:0}
+.app-dialog .dialog-close{flex-shrink:0;width:44px;height:44px;min-height:44px}
+.dialog-back{padding:8px 10px;min-height:44px}
+.dialog-form{display:flex;flex-direction:column;min-height:0;margin:0}
+.dialog-body{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:20px;scroll-padding:8px}
+.dialog-footer{flex-shrink:0;padding:14px 20px;border-top:1px solid #e9eee3;background:#fff;border-radius:0 0 20px 20px}
+.dialog-footer .start-button{justify-content:center}
+.dialog-body .dialog-description{margin:0 0 18px}.dialog-body .control-extra{margin-bottom:0}
+.app-dialog .rules{grid-template-columns:1fr;padding:0;gap:22px;margin-bottom:24px}.app-dialog .rule p{max-width:none;font-size:12px}
+.menu-summary{display:grid;gap:9px;font-size:13px;color:#75816c;padding-bottom:20px}.menu-summary>p:first-child{font-weight:600;color:#365b42}.menu-summary .history-position{font-size:12px;text-align:left}
+.menu-actions{display:grid;gap:10px}.menu-actions .button{justify-content:flex-start;min-height:46px;font-size:14px}
+.landing-card{padding:20px;text-align:center}.landing-card>.button{margin-top:16px}
+
+/* Height-constrained board. Each rod scene supplies both width and height units. */
+.board-fit{height:100%;min-height:0;padding:8px!important}
+.board-fit .board{height:100%;min-height:0}
+.board-fit .rod{display:grid;grid-template-rows:16px minmax(0,1fr) 18px;gap:4px;min-height:0;padding:6px 1px}
+.board-fit .rod-scene{container-type:size;height:100%;min-height:0;width:100%}
+.board-fit .rod-top-label{height:auto;font-size:8px;letter-spacing:0;gap:3px;line-height:16px}
+.board-fit .rod-top-label .target-dot{margin-top:5px}
+.board-fit .rod-number{margin:0;font-size:11px;line-height:18px;display:block}
+.board-fit .rod-number>span{display:none}
+.board-fit .disk-stack{--fit-gap:min(3px,1.4cqh);--fit-disk-height:min(clamp(12px,12cqw,23px),calc((100cqh - 26px - (var(--disk-count) - 1)*var(--fit-gap))/var(--disk-count)));gap:var(--fit-gap)}
+.board-fit .disk{height:var(--fit-disk-height);flex-shrink:0;border-radius:min(5px,3cqw)}
+.board-fit .disk span{font-size:min(clamp(7px,8cqw,10px),calc(var(--fit-disk-height)*.8));line-height:1.1;min-width:1.4em}
+.board-fit .target-outline{height:min(23px,12cqw,calc((100cqh - 26px)/var(--disk-count)))}
+.board-fit .rod-pole{top:4px}
+.board-fit .disk-selected{transform:translateY(-9px);box-shadow:0 0 0 1px #fafbf7,0 0 0 3px #406746}
+
+/* Match useCompactLayout.ts, including phones rotated to landscape. */
+@media(max-width:760px),(max-width:1024px) and (max-height:500px){
+  html,body,#root{width:100%;height:100%;overflow:hidden}
+  .compact-app{width:100%;height:100dvh;margin:0;padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));display:flex;flex-direction:column}
+  .compact-app>.site-header,.compact-app .intro,.compact-app>footer{display:none}
+  .compact-app>main{flex:1;min-height:0;display:flex;flex-direction:column}
+  .compact-app .game-card{display:grid;grid-template-rows:58px minmax(0,1fr) 40px 68px;flex:1;min-height:0;width:100%;border-radius:14px}
+  .compact-app .game-heading{min-height:0;padding:7px 12px;gap:8px;flex-wrap:nowrap}
+  .compact-app .game-title-block{flex-shrink:1;min-width:0}
+  .compact-app .mode-badge{font-size:11px;padding:5px 8px;margin:0}
+  .compact-app .game-meta{width:auto;max-width:none;min-width:0;flex-wrap:nowrap;gap:14px;margin-left:auto}
+  .compact-app .timer-controls{display:block}
+  .compact-app .move-count{border:0;padding:0;min-width:0}
+  .compact-app .move-count strong{font-size:20px;line-height:1.15}
+  .compact-app .move-count>span{font-size:8px;letter-spacing:.5px;margin-top:3px}
+  .compact-app .play-area{min-height:0;position:relative}
+  .compact-app .game-message{position:relative;min-height:0;height:40px;padding:3px 9px;gap:6px;font-size:11px;line-height:1.35;justify-content:center}
+  .compact-app .game-message>span:not(.visually-hidden){max-width:100%}
+  .compact-app .game-message svg{width:14px;height:14px}
+  .compact-app .game-toolbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:6px;margin:0;min-width:0}
+  .compact-app .history-buttons{display:contents}
+  .compact-app .game-toolbar .button{width:100%;min-width:0;min-height:44px;height:100%;padding:4px 1px;font-size:10px;line-height:1.15;gap:4px;flex-direction:column;border-radius:8px}
+  .compact-app .game-toolbar .button svg{width:18px;height:18px}
+  .compact-app .pause-panel{height:100%;min-height:0;padding:10px;gap:12px}
+  .compact-app .pause-panel h3{font-size:22px}.compact-app .pause-panel p{font-size:12px}
+  .compact-app .pause-panel .button{min-height:44px;margin:0}
+  .compact-app .landing-card{grid-template-rows:44px minmax(0,1fr) 52px;padding:12px;gap:8px}
+  .compact-app .landing-card>h2{align-self:center}.compact-app .landing-card>.button{margin:0}
+  .app-dialog{width:min(480px,calc(100% - 16px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))}
+  .app-dialog .dialog-heading{padding:12px;gap:8px}.app-dialog .dialog-heading h2{font-size:20px}
+  .dialog-body{padding:16px}.dialog-footer{padding:10px 16px}
+  .settings-fields .mode-description{min-height:0;margin-bottom:0}
+  .dialog-footer .back-button{margin-top:4px;min-height:44px}
+  .control-options .option span{min-height:44px}
+  .compact-app :focus-visible{outline-offset:-3px}
+}
+@media(max-width:1024px) and (max-height:500px){
+  .compact-app{padding:max(4px,env(safe-area-inset-top,0px)) max(6px,env(safe-area-inset-right,0px)) max(4px,env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  .compact-app .game-card{grid-template-rows:42px minmax(0,1fr) 28px 52px}
+  .compact-app .game-heading{padding:3px 10px}.compact-app .move-count strong{font-size:17px}.compact-app .move-count>span{font-size:7px;margin-top:1px}
+  .compact-app .game-message{height:28px;font-size:10px}.compact-app .game-toolbar{padding:3px 6px;gap:8px}
+  .compact-app .board-fit{padding:3px 6px!important}.compact-app .board-fit .rod{padding:0 1px;grid-template-rows:12px minmax(0,1fr) 14px;gap:2px}
+  .compact-app .rod-top-label{line-height:12px}.compact-app .rod-number{line-height:14px;font-size:10px}
+  .compact-app .pause-panel{gap:8px}.compact-app .pause-panel .pause-mark,.compact-app .pause-panel p{display:none}
+  .compact-app .pause-panel h3{font-size:18px}
+  .app-dialog .dialog-heading{padding:6px 12px}.app-dialog .dialog-heading h2{font-size:18px}
+  .dialog-footer{padding:6px 12px}.dialog-footer .start-button{min-height:44px;padding:8px 12px}
+  .dialog-footer:has(.back-button){display:flex;gap:8px}.dialog-footer .back-button{margin:0}
+  .control-demo{padding-top:8px;margin-top:12px}.demo-track{height:96px}.demo-rod{height:72px}
+}
+@media(min-width:480px) and (max-width:1024px) and (max-height:500px){
+  .compact-app .game-toolbar .button{flex-direction:row;font-size:11px;gap:7px}
+}

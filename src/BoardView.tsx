@@ -6,14 +6,14 @@ import type { ControlMode } from './controls';
 
 const COLORS = ['#d18a67', '#dfb759', '#9cab79', '#69a298', '#7e91b8', '#aa8eaf', '#be7587', '#be9a78', '#8b9c5a', '#7b9eae'];
 
-export default function BoardView({ board, config, selected = null, onRod, onMove, onClear, control = 'tap', won = false }: {
-  board: Board; config: Config; selected?: number | null; onRod?: (rod: number) => void; won?: boolean; control?: ControlMode; onMove?: (from: number, to: number) => void; onClear?: () => void;
+export default function BoardView({ board, config, selected = null, onRod, onMove, onClear, control = 'tap', won = false, fitHeight = false }: {
+  fitHeight?: boolean; board: Board; config: Config; selected?: number | null; onRod?: (rod: number) => void; won?: boolean; control?: ControlMode; onMove?: (from: number, to: number) => void; onClear?: () => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const gestures = useBoardGestures({ root, board, control, enabled: !!onRod && !won, onMove, onClear });
   const source = gestures.visual?.from ?? selected;
   const ghost = gestures.visual;
-  return <div ref={root} className={`board-shell control-${control}`} onDragStart={event => event.preventDefault()}
+  return <div ref={root} className={`board-shell control-${control} ${fitHeight ? 'board-fit' : ''}`} onDragStart={event => event.preventDefault()}
     onContextMenu={event => { if (control !== 'tap') event.preventDefault(); }} role="region" aria-label={onRod ? 'Игровое поле' : 'Начальная позиция'} tabIndex={0}>
     <div className={`board ${onRod ? '' : 'board-preview'}`} style={{ '--rod-count': config.rods, '--disk-count': config.disks } as CSSProperties}>
       {board.map((disks, rod) => {

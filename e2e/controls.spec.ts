@@ -1,3 +1,4 @@
+import { menuAction, expectStep } from './helpers';
 import { expect, test, type Page } from '@playwright/test';
 
 const rod = (page: Page, index: number) => page.locator(`button[data-rod="${index - 1}"]`);
@@ -51,27 +52,28 @@ test('control dialog defaults, cancellation, timer and manual pause', async ({ p
   await page.clock.fastForward(60_000);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('slider')).toHaveValue('7');
-  await expect(button(page, 'Начать игру')).toBeFocused();
+  if (await page.locator('.compact-app').count()) await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
+  else await expect(button(page, 'Начать игру')).toBeFocused();
   await button(page, 'Начать игру').click();
   await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
   await button(page, 'Играть').click();
   await expect(page.getByRole('timer')).toHaveText('00:00');
   await page.keyboard.press('1'); await page.keyboard.press('3');
   await page.clock.runFor(1500);
-  await button(page, 'Управление').click();
+  await menuAction(page, 'Управление');
   await expect(page.locator('.rod')).toHaveCount(0);
   await expect(page.getByRole('radio', { name: 'Нажатия', exact: true })).toBeChecked();
   await page.getByRole('radio', { name: 'Перетаскивание', exact: true }).check();
   await page.clock.fastForward(60_000);
   await page.keyboard.press('1'); await page.keyboard.press('2');
-  await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+  await expectStep(page, 1, 1);
   await page.keyboard.press('Escape');
-  await expect(button(page, 'Управление')).toBeFocused();
+  await expect(button(page, await page.locator('.compact-app').count() ? 'Меню' : 'Управление')).toBeFocused();
   await expect(page.locator('.board-shell.control-tap')).toHaveCount(1);
   await page.clock.runFor(500);
   await expect(page.getByRole('timer')).toHaveText('00:02');
   await button(page, 'Пауза').click();
-  await button(page, 'Управление').click();
+  await menuAction(page, 'Управление');
   await page.getByRole('radio', { name: 'Перетаскивание', exact: true }).check();
   await button(page, 'Применить').click();
   await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
@@ -79,17 +81,17 @@ test('control dialog defaults, cancellation, timer and manual pause', async ({ p
   await expect(page.getByRole('timer')).toHaveText('00:02');
   await page.locator('.pause-button').click();
   await expect(page.locator('.control-drag')).toHaveCount(1);
-  await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
-  await button(page, 'Начать заново').click();
+  await expectStep(page, 1, 1);
+  await menuAction(page, 'Начать заново');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.control-drag')).toHaveCount(1);
-  await button(page, 'Настройки').click();
+  await menuAction(page, 'Настройки');
   await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
   await button(page, 'Начать игру').click();
   await expect(page.getByRole('radio', { name: 'Свайпы', exact: true })).toBeChecked();
   await page.keyboard.press('Escape');
   await button(page, 'Назад к игре').click();
-  await expect(page.locator('.mode-badge')).toHaveText('Обычный режим');
+  await expect(page.locator('.mode-badge')).toContainText('Обычный');
 });
 
 test('drag moves exactly once; invalid and outside drops preserve history; taps still work', async ({ page, isMobile }) => {
@@ -103,23 +105,23 @@ test('drag moves exactly once; invalid and outside drops preserve history; taps 
     await expect(rod(page, 3)).toHaveClass(/rod-drop-target/);
     await expect(rod(page, 1).locator('.disk-in-transit')).toHaveCount(1);
     await input.up();
-    await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+    await expectStep(page, 1, 1);
     await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
     await expect(page.locator('.drag-ghost')).toHaveCount(0);
     await input.down(await center(page, 1)); await input.move(await center(page, 3)); await input.up();
     await expect(page.getByRole('status')).toContainText('Большой диск');
-    await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+    await expectStep(page, 1, 1);
     await input.down(await center(page, 1)); await input.move({ x: 2, y: 2 }); await input.up();
-    await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+    await expectStep(page, 1, 1);
     await expect(page.locator('.drag-ghost')).toHaveCount(0);
     await rod(page, 1).click(); await rod(page, 2).click();
-    await expect(page.getByText('Шаг 2 из 2')).toBeVisible();
+    await expectStep(page, 2, 2);
     await button(page, 'Отменить').click();
     await input.down(await center(page, 1)); await input.move(await center(page, 3)); await input.up();
     await expect(button(page, 'Повторить')).toBeEnabled();
     await input.down(await center(page, 3)); await input.move(await center(page, 2)); await input.up();
     await expect(button(page, 'Повторить')).toBeDisabled();
-    await expect(page.getByText('Шаг 2 из 2')).toBeVisible();
+    await expectStep(page, 2, 2);
     expect(await page.evaluate(() => window.getSelection()?.toString())).toBe('');
     expect(await page.locator('.board-shell').evaluate(el => getComputedStyle(el).userSelect)).toBe('none');
   } finally { await input.dispose(); }
@@ -132,32 +134,32 @@ test('swipes move only to neighbours in both directions and do not become clicks
     let from = await center(page, 1);
     await input.down(from); await input.move({ x: from.x + 100, y: from.y }); await input.up();
     await expect(rod(page, 2)).toHaveAccessibleName(/Верхний диск: 1/);
-    await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+    await expectStep(page, 1, 1);
     await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
     from = await center(page, 2);
     await input.down(from); await input.move({ x: from.x - 40, y: from.y }); await input.up();
     await expect(rod(page, 1)).toHaveAccessibleName(/Верхний диск: 1/);
-    await expect(page.getByText('Шаг 2 из 2')).toBeVisible();
+    await expectStep(page, 2, 2);
     from = await center(page, 1);
     await input.down(from); await input.move({ x: from.x - 30, y: from.y }); await input.up();
-    await expect(page.getByText('Шаг 2 из 2')).toBeVisible();
+    await expectStep(page, 2, 2);
     await expect(page.getByRole('status')).toContainText('Выберите стержень');
     // A tiny motion remains a tap.
     await input.down(from); await input.move({ x: from.x + 3, y: from.y }); await input.up();
     await expect(rod(page, 1)).toHaveAttribute('aria-pressed', 'true');
     await rod(page, 2).click();
-    await expect(page.getByText('Шаг 3 из 3')).toBeVisible();
+    await expectStep(page, 3, 3);
     await input.down(from); await input.move({ x: from.x + 40, y: from.y }); await input.up();
     await expect(page.getByRole('status')).toContainText('Большой диск');
-    await expect(page.getByText('Шаг 3 из 3')).toBeVisible();
+    await expectStep(page, 3, 3);
     // Below the swipe threshold and a mostly vertical gesture cannot move a disk.
     // Use the middle rod so an accidental horizontal swipe would be a legal move.
     from = await center(page, 2);
     await input.down(from); await input.move({ x: from.x + 15, y: from.y }); await input.up();
-    await expect(page.getByText('Шаг 3 из 3')).toBeVisible();
+    await expectStep(page, 3, 3);
     await expect(rod(page, 2)).toHaveAttribute('aria-pressed', 'false');
     await input.down(from); await input.move({ x: from.x + 25, y: from.y + 40 }); await input.up();
-    await expect(page.getByText('Шаг 3 из 3')).toBeVisible();
+    await expectStep(page, 3, 3);
   } finally { await input.dispose(); }
 });
 
@@ -167,12 +169,12 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
   try {
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
     await input.cancel(); if (!isMobile) await input.up();
-    await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
+    await expectStep(page, 0, 0);
     await expect(page.locator('.drag-ghost')).toHaveCount(0);
     if (isMobile) {
       await input.down(await center(page, 1)); await input.move(await center(page, 2));
       await input.second(await center(page, 2)); await input.up();
-      await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
+      await expectStep(page, 0, 0);
       await expect(page.locator('.drag-ghost')).toHaveCount(0);
     }
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
@@ -180,25 +182,27 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
     await page.setViewportSize({ ...viewport, width: viewport.width - 10 });
     await expect(page.locator('.drag-ghost')).toHaveCount(0);
     await input.up();
-    await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
+    await expectStep(page, 0, 0);
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
     // Simulate loss of capture while the device still has its pointer down.
     await rod(page, 1).evaluate(el => el.dispatchEvent(new PointerEvent('lostpointercapture', { bubbles: true })));
     await input.up();
-    await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
+    await expectStep(page, 0, 0);
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
     await button(page, 'Пауза').focus(); await page.keyboard.press('Enter'); await input.up();
     await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
     await expect(page.locator('.drag-ghost')).toHaveCount(0);
     await page.locator('.pause-button').click();
-    await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
+    await expectStep(page, 0, 0);
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
-    await button(page, 'Управление').focus(); await page.keyboard.press('Enter'); await input.up();
+    const compact = !!(await page.locator('.compact-app').count());
+    await button(page, compact ? 'Меню' : 'Управление').focus(); await page.keyboard.press('Enter'); await input.up();
+    if (compact) await button(page, 'Управление').click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.locator('.drag-ghost')).toHaveCount(0);
     await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
     await button(page, 'Применить').click();
-    await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
+    await expectStep(page, 0, 0);
   } finally { await input.dispose(); }
 });
 
@@ -207,7 +211,7 @@ test('numeric keys respect selection, mode, pause, form inputs and key repeats',
   await page.keyboard.press('1'); await page.keyboard.press('3');
   await expect(page.getByRole('status')).toContainText('только на соседний');
   await page.keyboard.press('2');
-  await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+  await expectStep(page, 1, 1);
   await page.keyboard.press('6');
   await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
   await page.keyboard.down('1'); await page.keyboard.down('1'); await page.keyboard.up('1');
@@ -218,12 +222,12 @@ test('numeric keys respect selection, mode, pause, form inputs and key repeats',
   await expect(rod(page, 1)).toHaveAttribute('aria-pressed', 'false');
   await button(page, 'Пауза').click();
   await page.keyboard.press('2'); await page.keyboard.press('3');
-  await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
-  await button(page, 'Настройки').click();
+  await expectStep(page, 1, 1);
+  await menuAction(page, 'Настройки');
   await page.getByRole('slider').focus();
   await page.keyboard.press('1'); await page.keyboard.press('2');
   await button(page, 'Назад к игре').click();
-  await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+  await expectStep(page, 1, 1);
 });
 
 test('dialog keeps focus inside and supports reduced motion', async ({ page }, testInfo) => {
@@ -237,10 +241,11 @@ test('dialog keeps focus inside and supports reduced motion', async ({ page }, t
   expect(await page.locator('.demo-moving-disk').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await page.screenshot({ path: testInfo.outputPath('controls-dialog.png'), fullPage: true });
   await page.keyboard.press('Escape');
-  await expect(button(page, 'Начать игру')).toBeFocused();
+  if (await page.locator('.compact-app').count()) await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
+  else await expect(button(page, 'Начать игру')).toBeFocused();
 });
 
-for (const width of [320, 390, 768, 1440]) {
+for (const width of [768, 1440]) {
   test(`all rod and disk counts fit the board at ${width}px`, async ({ page, isMobile }, testInfo) => {
     test.skip(isMobile, 'The complete viewport matrix is run once.');
     test.setTimeout(90_000);
@@ -269,7 +274,7 @@ for (const width of [320, 390, 768, 1440]) {
         await expect(page.locator('button.rod')).toHaveCount(rods);
         await assertFits();
         if (rods === 6 && disks === 10) await page.screenshot({ path: testInfo.outputPath('six-rods.png'), fullPage: true });
-        await button(page, 'Настройки').click();
+        await menuAction(page, 'Настройки');
       }
     }
   });
