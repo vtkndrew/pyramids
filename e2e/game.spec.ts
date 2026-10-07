@@ -98,3 +98,73 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
   await page.keyboard.press('Space');
   await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
 });
+
+async function freezeClock(page: Page) {
+  await page.clock.install({ time: new Date('2026-10-07T12:00:00Z') });
+  await page.goto('/');
+  await page.clock.pauseAt(new Date('2026-10-07T12:00:10Z'));
+}
+
+test('timer pauses in settings, preserves time through history, and resets for a new game', async ({ page }, testInfo) => {
+  await freezeClock(page);
+  const timer = page.getByRole('timer', { name: 'Время партии' });
+  await page.clock.fastForward(5000);
+  await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await expect(timer).toHaveText('00:00');
+  await page.clock.runFor(1500);
+  await expect(timer).toHaveText('00:01');
+  await page.getByRole('button', { name: 'Настройки', exact: true }).click();
+  await page.clock.fastForward(60_000);
+  await page.getByRole('button', { name: 'Назад к игре', exact: true }).click();
+  await expect(timer).toHaveText('00:01');
+  await page.clock.runFor(500);
+  await expect(timer).toHaveText('00:02');
+  await move(page, 1, 2);
+  await page.getByRole('button', { name: 'Отменить', exact: true }).click();
+  await expect(timer).toHaveText('00:02');
+  await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+  await expect(timer).toHaveText('00:02');
+  await page.clock.fastForward(65_000);
+  await expect(timer).toHaveText('01:07');
+  await page.clock.fastForward(3_600_000);
+  await expect(timer).toHaveText('01:01:07');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('timer.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Начать заново', exact: true }).click();
+  await expect(timer).toHaveText('00:00');
+  await page.clock.runFor(1000);
+  await expect(timer).toHaveText('00:01');
+  await page.getByRole('button', { name: 'Настройки', exact: true }).click();
+  await page.getByRole('radio', { name: '4', exact: true }).check();
+  await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await expect(timer).toHaveText('00:00');
+  await page.clock.runFor(1000);
+  await expect(timer).toHaveText('00:01');
+});
+
+test('timer stops on victory, resumes after undo, and stops again on redo', async ({ page }) => {
+  await freezeClock(page);
+  const timer = page.getByRole('timer', { name: 'Время партии' });
+  await page.getByRole('slider', { name: 'Количество дисков' }).fill('3');
+  await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.clock.runFor(3000);
+  for (const [from, to] of [[1, 3], [1, 2], [3, 2], [1, 3], [2, 1], [2, 3], [1, 3]]) await move(page, from, to);
+  await expect(page.getByRole('status')).toContainText('Время: 00:03');
+  await page.clock.fastForward(60_000);
+  await expect(timer).toHaveText('00:03');
+  await page.getByRole('button', { name: 'Настройки', exact: true }).click();
+  await page.getByRole('button', { name: 'Назад к игре', exact: true }).click();
+  await page.clock.runFor(1000);
+  await expect(timer).toHaveText('00:03');
+  await page.getByRole('button', { name: 'Отменить', exact: true }).click();
+  await page.clock.runFor(2000);
+  await expect(timer).toHaveText('00:05');
+  await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+  await page.clock.fastForward(60_000);
+  await expect(timer).toHaveText('00:05');
+  await expect(page.getByRole('status')).toContainText('Время: 00:05');
+  await page.getByRole('button', { name: 'Начать заново', exact: true }).click();
+  await expect(timer).toHaveText('00:00');
+  await page.clock.runFor(1000);
+  await expect(timer).toHaveText('00:01');
+});

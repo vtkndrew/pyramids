@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, moveError, type Board, type Config } from './game';
+import { formatElapsed, useGameTimer } from './useGameTimer';
 
 type IconName = 'arrow' | 'undo' | 'redo' | 'restart' | 'settings' | 'check' | 'spark' | 'info';
 function Icon({ name }: { name: IconName }) {
@@ -92,21 +93,31 @@ export default function App() {
   const [game, dispatch] = useReducer(gameReducer, DEFAULT_CONFIG, createGame);
   const [screen, setScreen] = useState<'settings' | 'game'>('settings');
   const [hasGame, setHasGame] = useState(false);
+  const [timerSession, setTimerSession] = useState(0);
   const gameHeading = useRef<HTMLHeadingElement>(null);
   const won = isWon(game);
+  const elapsed = useGameTimer(hasGame && screen === 'game' && !won, timerSession);
+  const elapsedLabel = formatElapsed(elapsed);
   const future = game.history.length - 1 - game.cursor;
   useEffect(() => { if (screen === 'game') gameHeading.current?.focus(); }, [screen]);
+
+  function startGame(config: Config) {
+    dispatch({ type: 'start', config });
+    setTimerSession(session => session + 1);
+    setHasGame(true);
+    setScreen('game');
+  }
 
   return <div className="app-shell">
     <header className="site-header"><a href="./" className="brand" aria-label="Пирамидки — на главную"><img src="/favicon.svg" width="38" height="38" alt="" /><span>пирамидки<span className="brand-dot">.</span></span></a><span className="header-caption">Маленькие шаги. Большое решение.</span><span className="header-badge"><span /> Время подумать</span></header>
     <main>
       <section className="intro"><div><p className="eyebrow"><span className="tiny-star">✳</span> Классическая головоломка</p><h1>Всё сложится<span className="title-dot">.</span></h1><p className="intro-description">Несколько дисков и одно простое правило.<br className="desktop-break" /> Перенесите пирамидку — ход за ходом.</p></div><div className="intro-aside"><span className="orbit-mark" aria-hidden="true">↗</span><p>Не спешите.<br />Здесь важен каждый ход.</p></div></section>
-      {screen === 'settings' ? <Settings initial={game.config} hasGame={hasGame} onBack={() => setScreen('game')} onStart={config => { dispatch({ type: 'start', config }); setHasGame(true); setScreen('game'); }} /> :
+      {screen === 'settings' ? <Settings initial={game.config} hasGame={hasGame} onBack={() => setScreen('game')} onStart={startGame} /> :
         <section className={`game-card ${won ? 'game-won' : ''}`} aria-labelledby="game-title">
-          <div className="game-heading"><div><div className="eyebrow">{won ? 'Отличная работа' : 'Ваша партия'}</div><h2 id="game-title" tabIndex={-1} ref={gameHeading}>{won ? 'Всё получилось!' : 'Ход за ходом'}</h2></div><div className="game-meta"><span className="config-summary">{countLabel(game.config.rods, 'стержня', 'стержней')} · {countLabel(game.config.disks, 'диска', 'дисков')}</span><div className="move-count"><strong>{game.cursor}</strong><span>Ходов</span></div><button type="button" className="button button-settings" aria-label="Настройки" onClick={() => setScreen('settings')}><Icon name="settings" /><span>Настройки</span></button></div></div>
+          <div className="game-heading"><div><div className="eyebrow">{won ? 'Отличная работа' : 'Ваша партия'}</div><h2 id="game-title" tabIndex={-1} ref={gameHeading}>{won ? 'Всё получилось!' : 'Ход за ходом'}</h2></div><div className="game-meta"><span className="config-summary">{countLabel(game.config.rods, 'стержня', 'стержней')} · {countLabel(game.config.disks, 'диска', 'дисков')}</span><div className="move-count game-timer"><strong role="timer" aria-label="Время партии" aria-live="off">{elapsedLabel}</strong><span>Время</span></div><div className="move-count"><strong>{game.cursor}</strong><span>Ходов</span></div><button type="button" className="button button-settings" aria-label="Настройки" onClick={() => setScreen('settings')}><Icon name="settings" /><span>Настройки</span></button></div></div>
           <BoardView board={currentBoard(game)} config={game.config} selected={game.selected} won={won} onRod={rod => dispatch({ type: 'select', rod })} />
-          <div className={`game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={won ? 'check' : game.error ? 'info' : 'spark'} /><span>{won ? `Пирамидка собрана! Количество ходов: ${game.cursor}. Можно начать заново или вернуться к любому ходу.` : game.error ?? (game.selected !== null ? `Выбран диск ${currentBoard(game)[game.selected].at(-1)}. Нажмите на стержень, куда хотите его переместить.` : game.cursor === 0 ? 'Первый шаг — ваш. Нажмите на стержень с дисками.' : 'Выберите верхний диск для следующего хода.')}</span></div>
-          <div className="game-toolbar"><div className="history-buttons"><button className="button" type="button" disabled={game.cursor === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" />Отменить</button><button className="button" type="button" disabled={future === 0} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" />Повторить</button></div><span className="history-position">Шаг {game.cursor} из {game.history.length - 1}</span><button type="button" className="button restart-button" onClick={() => dispatch({ type: 'restart' })}><Icon name="restart" />Начать заново</button></div>
+          <div className={`game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={won ? 'check' : game.error ? 'info' : 'spark'} /><span>{won ? `Пирамидка собрана! Количество ходов: ${game.cursor}. Время: ${elapsedLabel}. Можно начать заново или вернуться к любому ходу.` : game.error ?? (game.selected !== null ? `Выбран диск ${currentBoard(game)[game.selected].at(-1)}. Нажмите на стержень, куда хотите его переместить.` : game.cursor === 0 ? 'Первый шаг — ваш. Нажмите на стержень с дисками.' : 'Выберите верхний диск для следующего хода.')}</span></div>
+          <div className="game-toolbar"><div className="history-buttons"><button className="button" type="button" disabled={game.cursor === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" />Отменить</button><button className="button" type="button" disabled={future === 0} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" />Повторить</button></div><span className="history-position">Шаг {game.cursor} из {game.history.length - 1}</span><button type="button" className="button restart-button" onClick={() => startGame(game.config)}><Icon name="restart" />Начать заново</button></div>
         </section>}
       <Rules />
     </main>
