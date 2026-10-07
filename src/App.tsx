@@ -1,10 +1,12 @@
 import { useEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
-import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, moveError, type Board, type Config } from './game';
+import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, moveError, type Board, type Config, type GameMode } from './game';
 import { formatElapsed, useGameTimer } from './useGameTimer';
 
-type IconName = 'arrow' | 'undo' | 'redo' | 'restart' | 'settings' | 'check' | 'spark' | 'info';
+type IconName = 'arrow' | 'undo' | 'redo' | 'restart' | 'settings' | 'check' | 'spark' | 'info' | 'pause' | 'play';
 function Icon({ name }: { name: IconName }) {
   const paths: Record<IconName, string> = {
+    pause: 'M8 5v14M16 5v14',
+    play: 'm8 4 12 8-12 8Z',
     arrow: 'M4 12h16m-6-6 6 6-6 6',
     undo: 'M8 4 3 9l5 5M3 9h10a7 7 0 0 1 0 14',
     redo: 'm16 4 5 5-5 5m5-5H11a7 7 0 0 0 0 14',
@@ -31,7 +33,7 @@ function BoardView({ board, config, selected = null, onRod, won = false }: {
       {board.map((disks, rod) => {
         const target = rod === config.rods - 1;
         const active = selected === rod;
-        const available = selected !== null && !active && !moveError(board, selected, rod);
+        const available = selected !== null && !active && !moveError(board, selected, rod, config.mode);
         const content = <>
           <span className="rod-top-label">{target ? <><span className="target-dot" /> Цель</> : rod === 0 ? 'Старт' : '\u00a0'}</span>
           <span className="rod-scene" aria-hidden="true">
@@ -60,7 +62,7 @@ function Settings({ initial, hasGame, onStart, onBack }: {
   const [config, setConfig] = useState(initial);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
-  return <div className="setup-layout">
+  return <><div className="setup-layout">
     <section className="preview-card">
       <div className="card-heading"><span className="eyebrow">Всё начинается с первого хода</span><span className="preview-tag">Начальная позиция</span></div>
       <BoardView config={config} board={currentBoard(createGame(config))} />
@@ -73,18 +75,28 @@ function Settings({ initial, hasGame, onStart, onBack }: {
       <form onSubmit={event => { event.preventDefault(); onStart(config); }}>
         <fieldset><legend>Количество стержней</legend><div className="rod-options">{[3, 4, 5, 6].map(rods => <label key={rods} className={config.rods === rods ? 'option checked' : 'option'}><input type="radio" name="rods" value={rods} checked={config.rods === rods} onChange={() => setConfig({ ...config, rods })} /><span>{rods}</span></label>)}</div></fieldset>
         <div className="disk-setting"><div className="field-label"><label htmlFor="disks">Количество дисков</label><output htmlFor="disks">{config.disks}</output></div><input id="disks" type="range" min="3" max="10" value={config.disks} onChange={event => setConfig({ ...config, disks: Number(event.target.value) })} style={{ '--range-progress': `${(config.disks - 3) / 7 * 100}%` } as CSSProperties} /><div className="range-labels"><span>3 · Попроще</span><span>10 · Посложнее</span></div></div>
+        <fieldset className="mode-setting" aria-describedby="mode-description">
+          <legend>Режим игры</legend>
+          <div className="rod-options">
+            {(['classic', 'hardcore'] as const).map(mode => <label key={mode} className={`option ${config.mode === mode ? 'checked' : ''}`}>
+              <input type="radio" name="mode" value={mode} checked={config.mode === mode} onChange={() => setConfig({ ...config, mode })} />
+              <span>{mode === 'classic' ? 'Обычный' : 'Хардкор'}</span>
+            </label>)}
+          </div>
+          <p id="mode-description" className="mode-description">{config.mode === 'hardcore' ? 'Диски можно переносить только на соседний стержень.' : 'Переносите диски на любой подходящий стержень.'}</p>
+        </fieldset>
         <p className="settings-hint"><Icon name="info" /><span>Больше дисков — больше шагов.<br />Больше стержней — больше свободы.</span></p>
         <button className="button button-primary start-button" type="submit">Начать игру <Icon name="arrow" /></button>
         {hasGame && <button type="button" className="button back-button" onClick={onBack}>Назад к игре</button>}
       </form>
     </section>
-  </div>;
+  </div><Rules mode={config.mode} /></>;
 }
 
-function Rules() {
+function Rules({ mode }: { mode: GameMode }) {
   return <section className="rules" aria-label="Как играть">
     <div className="rule"><span className="rule-index">01</span><div><h3>Выберите диск</h3><p>Нажмите на стержень, чтобы взять верхний диск.</p></div></div>
-    <div className="rule"><span className="rule-index">02</span><div><h3>Найдите ему место</h3><p>Нажмите на пустой стержень или на стержень с диском большего размера.</p></div></div>
+    <div className="rule"><span className="rule-index">02</span><div><h3>Найдите ему место</h3><p>{mode === 'hardcore' ? 'Нажмите на соседний стержень: он должен быть пустым или с диском большего размера.' : 'Нажмите на пустой стержень или на стержень с диском большего размера.'}</p></div></div>
     <div className="rule"><span className="rule-index">03</span><div><h3>Соберите пирамидку</h3><p>Перенесите все диски на последний стержень. В своём темпе.</p></div></div>
   </section>;
 }
@@ -94,12 +106,25 @@ export default function App() {
   const [screen, setScreen] = useState<'settings' | 'game'>('settings');
   const [hasGame, setHasGame] = useState(false);
   const [timerSession, setTimerSession] = useState(0);
+  const fieldRef = useRef<HTMLDivElement>(null);
+  const pauseButton = useRef<HTMLButtonElement>(null);
+  const [pausedFieldHeight, setPausedFieldHeight] = useState<number>();
   const gameHeading = useRef<HTMLHeadingElement>(null);
   const won = isWon(game);
-  const elapsed = useGameTimer(hasGame && screen === 'game' && !won, timerSession);
+  const elapsed = useGameTimer(hasGame && screen === 'game' && !won && !game.paused, timerSession);
   const elapsedLabel = formatElapsed(elapsed);
   const future = game.history.length - 1 - game.cursor;
   useEffect(() => { if (screen === 'game') gameHeading.current?.focus(); }, [screen]);
+
+  function togglePause() {
+    if (game.paused) {
+      dispatch({ type: 'resume' });
+      pauseButton.current?.focus();
+    } else {
+      setPausedFieldHeight(fieldRef.current?.getBoundingClientRect().height);
+      dispatch({ type: 'pause' });
+    }
+  }
 
   function startGame(config: Config) {
     dispatch({ type: 'start', config });
@@ -114,12 +139,36 @@ export default function App() {
       <section className="intro"><div><p className="eyebrow"><span className="tiny-star">✳</span> Классическая головоломка</p><h1>Всё сложится<span className="title-dot">.</span></h1><p className="intro-description">Несколько дисков и одно простое правило.<br className="desktop-break" /> Перенесите пирамидку — ход за ходом.</p></div><div className="intro-aside"><span className="orbit-mark" aria-hidden="true">↗</span><p>Не спешите.<br />Здесь важен каждый ход.</p></div></section>
       {screen === 'settings' ? <Settings initial={game.config} hasGame={hasGame} onBack={() => setScreen('game')} onStart={startGame} /> :
         <section className={`game-card ${won ? 'game-won' : ''}`} aria-labelledby="game-title">
-          <div className="game-heading"><div><div className="eyebrow">{won ? 'Отличная работа' : 'Ваша партия'}</div><h2 id="game-title" tabIndex={-1} ref={gameHeading}>{won ? 'Всё получилось!' : 'Ход за ходом'}</h2></div><div className="game-meta"><span className="config-summary">{countLabel(game.config.rods, 'стержня', 'стержней')} · {countLabel(game.config.disks, 'диска', 'дисков')}</span><div className="move-count game-timer"><strong role="timer" aria-label="Время партии" aria-live="off">{elapsedLabel}</strong><span>Время</span></div><div className="move-count"><strong>{game.cursor}</strong><span>Ходов</span></div><button type="button" className="button button-settings" aria-label="Настройки" onClick={() => setScreen('settings')}><Icon name="settings" /><span>Настройки</span></button></div></div>
-          <BoardView board={currentBoard(game)} config={game.config} selected={game.selected} won={won} onRod={rod => dispatch({ type: 'select', rod })} />
-          <div className={`game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={won ? 'check' : game.error ? 'info' : 'spark'} /><span>{won ? `Пирамидка собрана! Количество ходов: ${game.cursor}. Время: ${elapsedLabel}. Можно начать заново или вернуться к любому ходу.` : game.error ?? (game.selected !== null ? `Выбран диск ${currentBoard(game)[game.selected].at(-1)}. Нажмите на стержень, куда хотите его переместить.` : game.cursor === 0 ? 'Первый шаг — ваш. Нажмите на стержень с дисками.' : 'Выберите верхний диск для следующего хода.')}</span></div>
-          <div className="game-toolbar"><div className="history-buttons"><button className="button" type="button" disabled={game.cursor === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" />Отменить</button><button className="button" type="button" disabled={future === 0} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" />Повторить</button></div><span className="history-position">Шаг {game.cursor} из {game.history.length - 1}</span><button type="button" className="button restart-button" onClick={() => startGame(game.config)}><Icon name="restart" />Начать заново</button></div>
+          <div className="game-heading">
+            <div className="game-title-block">
+              <div className="eyebrow">{won ? 'Отличная работа' : 'Ваша партия'}</div>
+              <h2 id="game-title" tabIndex={-1} ref={gameHeading}>{won ? 'Всё получилось!' : 'Ход за ходом'}</h2>
+              <span className={`mode-badge ${game.config.mode === 'hardcore' ? 'mode-hardcore' : ''}`}>{game.config.mode === 'hardcore' ? 'Хардкор · Только соседи' : 'Обычный режим'}</span>
+            </div>
+            <div className="game-meta">
+              <span className="config-summary">{countLabel(game.config.rods, 'стержня', 'стержней')} · {countLabel(game.config.disks, 'диска', 'дисков')}</span>
+              <div className="timer-controls">
+                <div className="move-count game-timer"><strong role="timer" aria-label="Время партии" aria-live="off">{elapsedLabel}</strong><span>Время</span></div>
+                <button ref={pauseButton} type="button" className="button pause-button" disabled={won} aria-pressed={game.paused} onClick={togglePause}>
+                  <Icon name={game.paused ? 'play' : 'pause'} />{game.paused ? 'Продолжить' : 'Пауза'}
+                </button>
+              </div>
+              <div className="move-count"><strong>{game.cursor}</strong><span>Ходов</span></div>
+              <button type="button" className="button button-settings" aria-label="Настройки" onClick={() => setScreen('settings')}><Icon name="settings" /><span>Настройки</span></button>
+            </div>
+          </div>
+          <div ref={fieldRef} className="play-area" style={game.paused ? { height: pausedFieldHeight } : undefined}>
+            {game.paused ? <section className="pause-panel" aria-labelledby="pause-title">
+              <span className="pause-mark"><Icon name="pause" /></span>
+              <h3 id="pause-title">Игра на паузе</h3>
+              <p>Пирамидка подождёт.<br />Продолжите, когда будете готовы.</p>
+              <button type="button" className="button button-primary" onClick={togglePause}><Icon name="play" />Продолжить</button>
+            </section> : <BoardView board={currentBoard(game)} config={game.config} selected={game.selected} won={won} onRod={rod => dispatch({ type: 'select', rod })} />}
+          </div>
+          <div className={`game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={won ? 'check' : game.error ? 'info' : 'spark'} /><span>{game.paused ? 'Время остановлено. Продолжите игру, когда будете готовы.' : won ? `Пирамидка собрана! Количество ходов: ${game.cursor}. Время: ${elapsedLabel}. Можно начать заново или вернуться к любому ходу.` : game.error ?? (game.selected !== null ? `Выбран диск ${currentBoard(game)[game.selected].at(-1)}. Нажмите на стержень, куда хотите его переместить.` : game.cursor === 0 ? 'Первый шаг — ваш. Нажмите на стержень с дисками.' : 'Выберите верхний диск для следующего хода.')}</span></div>
+          <div className="game-toolbar"><div className="history-buttons"><button className="button" type="button" disabled={game.paused || game.cursor === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" />Отменить</button><button className="button" type="button" disabled={game.paused || future === 0} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" />Повторить</button></div><span className="history-position">Шаг {game.cursor} из {game.history.length - 1}</span><button type="button" className="button restart-button" onClick={() => startGame(game.config)}><Icon name="restart" />Начать заново</button></div>
         </section>}
-      <Rules />
+      {screen === 'game' && <Rules mode={game.config.mode} />}
     </main>
     <footer><span>Простые правила. Красивые решения.</span><span>Сделайте паузу для мысли <span className="footer-spark">✳</span></span></footer>
   </div>;

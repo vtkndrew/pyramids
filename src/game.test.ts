@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, type Game } from './game';
+import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, type Game, type GameMode } from './game';
 
 function move(game: Game, from: number, to: number): Game {
   return gameReducer(gameReducer(game, { type: 'select', rod: from }), { type: 'select', rod: to });
@@ -15,18 +15,18 @@ function solve(game: Game, n: number, from: number, to: number, spare: number): 
 
 describe('rules and setup', () => {
   it.each([3, 4, 5, 6])('starts with a descending pyramid on the first of %i rods', rods => {
-    const game = createGame({ rods, disks: 10 });
+    const game = createGame({ mode: 'classic', rods, disks: 10 });
     expect(currentBoard(game)).toEqual([Array.from({ length: 10 }, (_, i) => 10 - i), ...Array.from({ length: rods - 1 }, () => [])]);
     expect(game.cursor).toBe(0);
     expect(isWon(game)).toBe(false);
   });
 
   it.each([{ rods: 2, disks: 5 }, { rods: 7, disks: 5 }, { rods: 3, disks: 2 }, { rods: 3, disks: 11 }, { rods: 3.5, disks: 5 }, { rods: 3, disks: NaN }])('rejects invalid settings: %o', config => {
-    expect(() => createGame(config)).toThrow(RangeError);
+    expect(() => createGame({ ...config, mode: 'classic' })).toThrow(RangeError);
   });
 
   it('moves only the top disk and allows a smaller disk onto a bigger one', () => {
-    const initial = createGame({ rods: 3, disks: 3 });
+    const initial = createGame({ mode: 'classic', rods: 3, disks: 3 });
     const first = move(initial, 0, 2);
     const second = move(first, 0, 1);
     const third = move(second, 2, 1);
@@ -60,9 +60,118 @@ describe('rules and setup', () => {
   });
 });
 
+describe('hardcore mode', () => {
+  it.each([3, 4, 5, 6])('allows both neighbours and rejects jumps with %i rods', rods => {
+    const initial = createGame({ rods, disks: 3, mode: 'hardcore' });
+    const jumped = move(initial, 0, 2);
+    expect(jumped.error).toContain('соседний');
+    expect(jumped.history).toBe(initial.history);
+    expect(jumped.selected).toBe(0);
+    const right = move(move(initial, 0, 1), 1, 2);
+    expect(right.cursor).toBe(2);
+    expect(currentBoard(right)[2]).toEqual([1]);
+    const left = move(move(right, 2, 1), 1, 0);
+    expect(left.cursor).toBe(4);
+    expect(currentBoard(left)).toEqual(currentBoard(initial));
+    let atEnd = initial;
+    for (let from = 0; from < rods - 1; from++) atEnd = move(atEnd, from, from + 1);
+    const wrap = move(atEnd, rods - 1, 0);
+    expect(wrap.error).toContain('соседний');
+    expect(wrap.history).toBe(atEnd.history);
+  });
+
+  it.each(['classic', 'hardcore'] as const)('still enforces disk sizes in %s mode', mode => {
+    const first = move(createGame({ ...DEFAULT_CONFIG, mode }), 0, 1);
+    const invalid = move(first, 0, 1);
+    expect(invalid.error).toContain('Большой диск');
+    expect(invalid.cursor).toBe(1);
+    expect(invalid.selected).toBe(0);
+  });
+
+  it('preserves the future after invalid moves and discards it after a legal branch', () => {
+    const first = move(createGame({ ...DEFAULT_CONFIG, mode: 'hardcore' }), 0, 1);
+    const second = move(first, 1, 2);
+    const undone = gameReducer(second, { type: 'undo' });
+    const invalid = move(undone, 0, 2);
+    expect(invalid.error).toContain('соседний');
+    expect(invalid.history).toBe(second.history);
+    const deselected = gameReducer(invalid, { type: 'select', rod: 0 });
+    const branch = move(deselected, 1, 0);
+    expect(branch.cursor).toBe(2);
+    expect(branch.history).toHaveLength(3);
+    expect(currentBoard(branch)[0]).toEqual([5, 4, 3, 2, 1]);
+    expect(gameReducer(branch, { type: 'redo' }).cursor).toBe(2);
+    const undo = gameReducer(branch, { type: 'undo' });
+    expect(currentBoard(undo)).toEqual(currentBoard(first));
+    expect(currentBoard(gameReducer(undo, { type: 'redo' }))).toEqual(currentBoard(branch));
+  });
+
+  it('rejects unknown modes', () => {
+    expect(() => createGame({ ...DEFAULT_CONFIG, mode: 'unknown' as GameMode })).toThrow(RangeError);
+  });
+
+  it.each([3, 10])('solves %i disks and can undo and redo the entire hardcore game', disks => {
+    const initial = createGame({ rods: 3, disks, mode: 'hardcore' });
+    let game = initial;
+    let moves = 0;
+    const step = (from: number, to: number) => {
+      game = move(game, from, to);
+      if (game.error) throw new Error(game.error);
+      moves++;
+    };
+    const solveAdjacent = (count: number, from: number, to: number): void => {
+      if (count === 0) return;
+      solveAdjacent(count - 1, from, to);
+      step(from, 1);
+      solveAdjacent(count - 1, to, from);
+      step(1, to);
+      solveAdjacent(count - 1, from, to);
+    };
+    solveAdjacent(disks, 0, 2);
+    expect(moves).toBe(disks === 3 ? 26 : 59048);
+    expect(game.cursor).toBe(moves);
+    expect(game.history).toHaveLength(moves + 1);
+    expect(isWon(game)).toBe(true);
+    expect(gameReducer(game, { type: 'pause' })).toBe(game);
+    for (let i = 0; i < moves; i++) game = gameReducer(game, { type: 'undo' });
+    expect(currentBoard(game)).toEqual(currentBoard(initial));
+    expect(isWon(game)).toBe(false);
+    for (let i = 0; i < moves; i++) game = gameReducer(game, { type: 'redo' });
+    expect(game.cursor).toBe(moves);
+    expect(isWon(game)).toBe(true);
+  }, 30_000);
+});
+
+describe('manual pause', () => {
+  it.each(['classic', 'hardcore'] as const)('blocks board and history changes in %s mode', mode => {
+    const initial = createGame({ ...DEFAULT_CONFIG, mode });
+    const first = move(initial, 0, 1);
+    const second = move(first, 1, 2);
+    const undone = gameReducer(second, { type: 'undo' });
+    const invalid = move(undone, 0, 1);
+    expect(invalid.error).not.toBeNull();
+    const paused = gameReducer(invalid, { type: 'pause' });
+    expect(paused.paused).toBe(true);
+    expect(paused.selected).toBeNull();
+    expect(paused.error).toBeNull();
+    expect(paused.history).toBe(second.history);
+    expect(paused.cursor).toBe(1);
+    expect(gameReducer(paused, { type: 'undo' })).toBe(paused);
+    expect(gameReducer(paused, { type: 'redo' })).toBe(paused);
+    expect(gameReducer(paused, { type: 'select', rod: 1 })).toBe(paused);
+    const resumed = gameReducer(paused, { type: 'resume' });
+    expect(resumed.paused).toBe(false);
+    expect(resumed.history).toBe(paused.history);
+    expect(currentBoard(gameReducer(resumed, { type: 'redo' }))).toEqual(currentBoard(second));
+    expect(gameReducer(paused, { type: 'restart' })).toEqual(initial);
+    const config = { rods: 6, disks: 10, mode: mode === 'classic' ? 'hardcore' : 'classic' } as const;
+    expect(gameReducer(paused, { type: 'start', config })).toEqual(createGame(config));
+  });
+});
+
 describe('history and victory', () => {
   it('undoes and redoes a complete game, including victory, at bounded endpoints', () => {
-    const initial = createGame({ rods: 3, disks: 3 });
+    const initial = createGame({ mode: 'classic', rods: 3, disks: 3 });
     const complete = solve(initial, 3, 0, 2, 1);
     expect(complete.cursor).toBe(7);
     expect(isWon(complete)).toBe(true);
@@ -108,7 +217,7 @@ describe('history and victory', () => {
   });
 
   it.each([3, 4, 5, 6])('requires the last rod for victory with %i rods', rods => {
-    const initial = createGame({ rods, disks: 3 });
+    const initial = createGame({ mode: 'classic', rods, disks: 3 });
     const nonTarget = solve(initial, 3, 0, 1, rods - 1);
     expect(isWon(nonTarget)).toBe(false);
     const complete = solve(initial, 3, 0, rods - 1, 1);
@@ -116,11 +225,11 @@ describe('history and victory', () => {
   });
 
   it('restarts with the same config and starts a new game with changed config', () => {
-    let game = move(createGame({ rods: 6, disks: 10 }), 0, 5);
+    let game = move(createGame({ mode: 'classic', rods: 6, disks: 10 }), 0, 5);
     game = gameReducer(game, { type: 'select', rod: 0 });
     const restart = gameReducer(game, { type: 'restart' });
-    expect(restart).toEqual(createGame({ rods: 6, disks: 10 }));
-    const changed = gameReducer(game, { type: 'start', config: { rods: 4, disks: 3 } });
-    expect(changed).toEqual(createGame({ rods: 4, disks: 3 }));
+    expect(restart).toEqual(createGame({ mode: 'classic', rods: 6, disks: 10 }));
+    const changed = gameReducer(game, { type: 'start', config: { mode: 'classic', rods: 4, disks: 3 } });
+    expect(changed).toEqual(createGame({ mode: 'classic', rods: 4, disks: 3 }));
   });
 });

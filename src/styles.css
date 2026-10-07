@@ -13,4 +13,10 @@
 .game-timer strong{min-width:5ch;white-space:nowrap}
 @media(max-width:760px){.game-heading{flex-wrap:wrap}.game-meta{flex-wrap:wrap}.game-timer strong{font-size:24px}}
 @media(max-width:480px){.game-meta{width:100%;gap:24px}.game-meta .button-settings{margin-left:auto}}
+.mode-setting{margin-top:25px}.mode-description{font-size:11px;line-height:1.7;color:#778377;margin-top:12px;min-height:38px}
+.mode-badge{display:inline-block;margin-top:10px;padding:5px 9px;border-radius:20px;background:#eef3e8;color:#607450;font-size:10px;line-height:1.4;white-space:nowrap}.mode-hardcore{background:#f6eadf;color:#956442}
+.game-title-block{flex-shrink:0}.game-heading{flex-wrap:wrap}.game-meta{flex-wrap:wrap;gap:20px}.timer-controls{display:flex;align-items:center;gap:14px}.pause-button{min-width:126px;background:#f7f9f3}
+.pause-panel{height:100%;min-height:290px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f2f5ed;text-align:center;padding:26px}.pause-mark{display:grid;place-items:center;width:48px;height:48px;border:1px solid #d8e1cf;border-radius:50%;color:#718665}.pause-panel h3{font-size:23px;font-weight:500;letter-spacing:-.5px}.pause-panel p{font-size:13px;line-height:1.8;color:#7b8872}.pause-panel .button{margin-top:4px;min-width:160px}
+@media(max-width:760px){.game-meta{width:100%;gap:14px}.game-meta .button-settings{margin-left:auto}.timer-controls{gap:10px}.pause-button{min-width:116px;padding:10px}.game-meta .move-count strong{font-size:24px}}
+@media(max-width:390px){.game-meta{gap:10px}.timer-controls{gap:7px}.pause-button{min-width:104px;font-size:11px;padding:10px 8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
