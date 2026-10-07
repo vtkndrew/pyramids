@@ -1,5 +1,8 @@
 import { useEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
-import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, moveError, type Board, type Config, type GameMode } from './game';
+import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, type Config, type GameMode } from './game';
+import BoardView from './BoardView';
+import ControlDialog from './ControlDialog';
+import { defaultControl, CONTROL_HINTS, type ControlMode } from './controls';
 import { formatElapsed, useGameTimer } from './useGameTimer';
 
 type IconName = 'arrow' | 'undo' | 'redo' | 'restart' | 'settings' | 'check' | 'spark' | 'info' | 'pause' | 'play';
@@ -19,45 +22,13 @@ function Icon({ name }: { name: IconName }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 
-const COLORS = ['#d18a67', '#dfb759', '#9cab79', '#69a298', '#7e91b8', '#aa8eaf', '#be7587', '#be9a78', '#8b9c5a', '#7b9eae'];
-
 function countLabel(count: number, few: string, many: string) {
   return `${count} ${count < 5 ? few : many}`;
 }
 
-function BoardView({ board, config, selected = null, onRod, won = false }: {
-  board: Board; config: Config; selected?: number | null; onRod?: (rod: number) => void; won?: boolean;
-}) {
-  return <div className="board-scroll" role="region" aria-label={onRod ? 'Игровое поле' : 'Начальная позиция'} tabIndex={0}>
-    <div className={`board ${onRod ? '' : 'board-preview'}`} style={{ '--rod-count': config.rods, '--disk-count': config.disks } as CSSProperties}>
-      {board.map((disks, rod) => {
-        const target = rod === config.rods - 1;
-        const active = selected === rod;
-        const available = selected !== null && !active && !moveError(board, selected, rod, config.mode);
-        const content = <>
-          <span className="rod-top-label">{target ? <><span className="target-dot" /> Цель</> : rod === 0 ? 'Старт' : '\u00a0'}</span>
-          <span className="rod-scene" aria-hidden="true">
-            <span className="rod-pole" />
-            {target && disks.length === 0 && <span className="target-outline" />}
-            <span className="disk-stack">
-              {disks.map((disk, index) => <span key={disk} className={`disk ${active && index === disks.length - 1 ? 'disk-selected' : ''}`} style={{ width: `${30 + (disk / config.disks) * 62}%`, backgroundColor: COLORS[disk - 1] }}>
-                <span>{disk}</span>
-              </span>)}
-            </span>
-            <span className="rod-base" />
-          </span>
-          <span className="rod-number">{String(rod + 1).padStart(2, '0')}<span>{active ? 'Выбран' : available ? 'Переместить сюда' : `Стержень ${rod + 1}`}</span></span>
-        </>;
-        const className = `rod ${target ? 'rod-target' : ''} ${active ? 'rod-selected' : ''} ${available ? 'rod-available' : ''}`;
-        return onRod ? <button key={rod} type="button" className={className} aria-label={`Стержень ${rod + 1}${target ? ', цель' : ''}. ${disks.length ? `Диски снизу вверх: ${disks.join(', ')}. Верхний диск: ${disks.at(-1)}.` : 'Пустой.'}`} aria-pressed={active} disabled={won} onClick={() => onRod(rod)}>{content}</button>
-          : <div key={rod} className={className}>{content}</div>;
-      })}
-    </div>
-  </div>;
-}
 
-function Settings({ initial, hasGame, onStart, onBack }: {
-  initial: Config; hasGame: boolean; onStart: (config: Config) => void; onBack: () => void;
+function Settings({ initial, hasGame, onStart, onBack, hidePreview }: {
+  initial: Config; hasGame: boolean; hidePreview: boolean; onStart: (config: Config) => void; onBack: () => void;
 }) {
   const [config, setConfig] = useState(initial);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -65,7 +36,7 @@ function Settings({ initial, hasGame, onStart, onBack }: {
   return <><div className="setup-layout">
     <section className="preview-card">
       <div className="card-heading"><span className="eyebrow">Всё начинается с первого хода</span><span className="preview-tag">Начальная позиция</span></div>
-      <BoardView config={config} board={currentBoard(createGame(config))} />
+      {!hidePreview && <BoardView config={config} board={currentBoard(createGame(config))} />}
       <div className="preview-note"><span className="note-line" /><span>С первого стержня — на последний</span><Icon name="arrow" /></div>
     </section>
     <section className="settings-card" aria-labelledby="settings-title">
@@ -93,10 +64,10 @@ function Settings({ initial, hasGame, onStart, onBack }: {
   </div><Rules mode={config.mode} /></>;
 }
 
-function Rules({ mode }: { mode: GameMode }) {
+function Rules({ mode, control = 'tap' }: { mode: GameMode; control?: ControlMode }) {
   return <section className="rules" aria-label="Как играть">
-    <div className="rule"><span className="rule-index">01</span><div><h3>Выберите диск</h3><p>Нажмите на стержень, чтобы взять верхний диск.</p></div></div>
-    <div className="rule"><span className="rule-index">02</span><div><h3>Найдите ему место</h3><p>{mode === 'hardcore' ? 'Нажмите на соседний стержень: он должен быть пустым или с диском большего размера.' : 'Нажмите на пустой стержень или на стержень с диском большего размера.'}</p></div></div>
+    <div className="rule"><span className="rule-index">01</span><div><h3>Выберите диск</h3><p>{CONTROL_HINTS[control]}</p></div></div>
+    <div className="rule"><span className="rule-index">02</span><div><h3>Найдите ему место</h3><p>{mode === 'hardcore' ? 'Переносите диск на соседний стержень: пустой или с диском большего размера.' : 'Переносите диск на пустой стержень или на стержень с диском большего размера.'}</p></div></div>
     <div className="rule"><span className="rule-index">03</span><div><h3>Соберите пирамидку</h3><p>Перенесите все диски на последний стержень. В своём темпе.</p></div></div>
   </section>;
 }
@@ -106,15 +77,38 @@ export default function App() {
   const [screen, setScreen] = useState<'settings' | 'game'>('settings');
   const [hasGame, setHasGame] = useState(false);
   const [timerSession, setTimerSession] = useState(0);
+  const [control, setControl] = useState<ControlMode>('drag');
+  const [controlDialog, setControlDialog] = useState<{ config: Config; initial: ControlMode; newGame: boolean } | null>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
   const pauseButton = useRef<HTMLButtonElement>(null);
   const [pausedFieldHeight, setPausedFieldHeight] = useState<number>();
   const gameHeading = useRef<HTMLHeadingElement>(null);
   const won = isWon(game);
-  const elapsed = useGameTimer(hasGame && screen === 'game' && !won && !game.paused, timerSession);
+  const elapsed = useGameTimer(hasGame && screen === 'game' && !won && !game.paused && !controlDialog, timerSession);
   const elapsedLabel = formatElapsed(elapsed);
   const future = game.history.length - 1 - game.cursor;
   useEffect(() => { if (screen === 'game') gameHeading.current?.focus(); }, [screen]);
+
+  useEffect(() => {
+    if (screen !== 'game' || game.paused || won || controlDialog) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+      if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable], dialog, [role="dialog"]')) return;
+      if (event.key === 'Escape') dispatch({ type: 'clearSelection' });
+      else if (/^[1-6]$/.test(event.key) && Number(event.key) <= game.config.rods) {
+        event.preventDefault();
+        dispatch({ type: 'select', rod: Number(event.key) - 1 });
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [screen, game.paused, game.config.rods, won, controlDialog]);
+
+  function openControls(config: Config, newGame: boolean) {
+    setPausedFieldHeight(fieldRef.current?.getBoundingClientRect().height);
+    dispatch({ type: 'clearSelection' });
+    setControlDialog({ config, initial: newGame ? defaultControl(config.mode) : control, newGame });
+  }
 
   function togglePause() {
     if (game.paused) {
@@ -137,7 +131,7 @@ export default function App() {
     <header className="site-header"><a href="./" className="brand" aria-label="Пирамидки — на главную"><img src={`${import.meta.env.BASE_URL}favicon.svg`} width="38" height="38" alt="" /><span>пирамидки<span className="brand-dot">.</span></span></a><span className="header-caption">Маленькие шаги. Большое решение.</span><span className="header-badge"><span /> Время подумать</span></header>
     <main>
       <section className="intro"><div><p className="eyebrow"><span className="tiny-star">✳</span> Классическая головоломка</p><h1>Всё сложится<span className="title-dot">.</span></h1><p className="intro-description">Несколько дисков и одно простое правило.<br className="desktop-break" /> Перенесите пирамидку — ход за ходом.</p></div><div className="intro-aside"><span className="orbit-mark" aria-hidden="true">↗</span><p>Не спешите.<br />Здесь важен каждый ход.</p></div></section>
-      {screen === 'settings' ? <Settings initial={game.config} hasGame={hasGame} onBack={() => setScreen('game')} onStart={startGame} /> :
+      {screen === 'settings' ? <Settings initial={game.config} hasGame={hasGame} onBack={() => setScreen('game')} hidePreview={!!controlDialog} onStart={config => openControls(config, true)} /> :
         <section className={`game-card ${won ? 'game-won' : ''}`} aria-labelledby="game-title">
           <div className="game-heading">
             <div className="game-title-block">
@@ -154,22 +148,29 @@ export default function App() {
                 </button>
               </div>
               <div className="move-count"><strong>{game.cursor}</strong><span>Ходов</span></div>
+              <button type="button" className="button control-button" onClick={() => openControls(game.config, false)}>Управление</button>
               <button type="button" className="button button-settings" aria-label="Настройки" onClick={() => setScreen('settings')}><Icon name="settings" /><span>Настройки</span></button>
             </div>
           </div>
-          <div ref={fieldRef} className="play-area" style={game.paused ? { height: pausedFieldHeight } : undefined}>
-            {game.paused ? <section className="pause-panel" aria-labelledby="pause-title">
+          <div ref={fieldRef} className="play-area" style={game.paused || controlDialog ? { height: pausedFieldHeight } : undefined}>
+            {controlDialog ? <div className="pause-panel"><h3>Выбор управления</h3><p>Время остановлено.</p></div> : game.paused ? <section className="pause-panel" aria-labelledby="pause-title">
               <span className="pause-mark"><Icon name="pause" /></span>
               <h3 id="pause-title">Игра на паузе</h3>
               <p>Пирамидка подождёт.<br />Продолжите, когда будете готовы.</p>
               <button type="button" className="button button-primary" onClick={togglePause}><Icon name="play" />Продолжить</button>
-            </section> : <BoardView board={currentBoard(game)} config={game.config} selected={game.selected} won={won} onRod={rod => dispatch({ type: 'select', rod })} />}
+            </section> : <BoardView board={currentBoard(game)} config={game.config} selected={game.selected} won={won} control={control} onClear={() => dispatch({ type: 'clearSelection' })} onMove={(from, to) => dispatch({ type: 'move', from, to })} onRod={rod => dispatch({ type: 'select', rod })} />}
           </div>
-          <div className={`game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={won ? 'check' : game.error ? 'info' : 'spark'} /><span>{game.paused ? 'Время остановлено. Продолжите игру, когда будете готовы.' : won ? `Пирамидка собрана! Количество ходов: ${game.cursor}. Время: ${elapsedLabel}. Можно начать заново или вернуться к любому ходу.` : game.error ?? (game.selected !== null ? `Выбран диск ${currentBoard(game)[game.selected].at(-1)}. Нажмите на стержень, куда хотите его переместить.` : game.cursor === 0 ? 'Первый шаг — ваш. Нажмите на стержень с дисками.' : 'Выберите верхний диск для следующего хода.')}</span></div>
+          <div className={`game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`} role="status" aria-live="polite" aria-atomic="true"><Icon name={won ? 'check' : game.error ? 'info' : 'spark'} /><span>{controlDialog ? 'Выберите удобный способ управления.' : game.paused ? 'Время остановлено. Продолжите игру, когда будете готовы.' : won ? `Пирамидка собрана! Количество ходов: ${game.cursor}. Время: ${elapsedLabel}. Можно начать заново или вернуться к любому ходу.` : game.error ?? (game.selected !== null ? `Выбран диск ${currentBoard(game)[game.selected].at(-1)}. Нажмите на стержень, куда хотите его переместить.` : CONTROL_HINTS[control])}</span></div>
           <div className="game-toolbar"><div className="history-buttons"><button className="button" type="button" disabled={game.paused || game.cursor === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" />Отменить</button><button className="button" type="button" disabled={game.paused || future === 0} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" />Повторить</button></div><span className="history-position">Шаг {game.cursor} из {game.history.length - 1}</span><button type="button" className="button restart-button" onClick={() => startGame(game.config)}><Icon name="restart" />Начать заново</button></div>
         </section>}
-      {screen === 'game' && <Rules mode={game.config.mode} />}
+      {screen === 'game' && <Rules mode={game.config.mode} control={control} />}
     </main>
+    {controlDialog && <ControlDialog mode={controlDialog.config.mode} initial={controlDialog.initial} newGame={controlDialog.newGame}
+      onClose={() => setControlDialog(null)} onConfirm={choice => {
+        setControl(choice);
+        if (controlDialog.newGame) startGame(controlDialog.config);
+        setControlDialog(null);
+      }} />}
     <footer><span>Простые правила. Красивые решения.</span><span>Сделайте паузу для мысли <span className="footer-spark">✳</span></span></footer>
   </div>;
 }

@@ -14,6 +14,7 @@ test('settings, history, errors, branching and restart', async ({ page }, testIn
   await expect(page.getByRole('slider', { name: 'Количество дисков' })).toHaveValue('5');
   await page.screenshot({ path: testInfo.outputPath('settings.png'), fullPage: true });
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Отменить', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Повторить', exact: true })).toBeDisabled();
   await move(page, 1, 3);
@@ -35,7 +36,7 @@ test('settings, history, errors, branching and restart', async ({ page }, testIn
   await expect(page.getByText('Шаг 2 из 2')).toBeVisible();
   await expect(page.locator('button.rod')).toHaveCount(3);
   await page.getByRole('button', { name: 'Начать заново', exact: true }).click();
-  await expect(rod(page, 1)).toHaveAccessibleName('Стержень 1. Диски снизу вверх: 5, 4, 3, 2, 1. Верхний диск: 1.');
+  await expect(rod(page, 1)).toHaveAccessibleName('Стержень 1, старт. Диски снизу вверх: 5, 4, 3, 2, 1. Верхний диск: 1.');
   await expect(page.getByText('Шаг 0 из 0')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Повторить', exact: true })).toBeDisabled();
   expect(errors).toEqual([]);
@@ -45,6 +46,7 @@ test('victory, complete undo and redo', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('slider', { name: 'Количество дисков' }).fill('3');
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   for (const [from, to] of [[1, 3], [1, 2], [3, 2], [1, 3], [2, 1], [2, 3], [1, 3]]) await move(page, from, to);
   await expect(page.getByRole('heading', { name: 'Всё получилось!' })).toBeVisible();
   await expect(rod(page, 3)).toBeDisabled();
@@ -57,11 +59,12 @@ test('victory, complete undo and redo', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Всё получилось!' })).toBeVisible();
 });
 
-test('maximum settings, last-rod target and contained horizontal scrolling', async ({ page }, testInfo) => {
+test('maximum settings, last-rod target and no horizontal scrolling', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('radio', { name: '6', exact: true }).check();
   await page.getByRole('slider', { name: 'Количество дисков' }).fill('10');
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await expect(page.locator('button.rod')).toHaveCount(6);
   await expect(rod(page, 6)).toHaveAccessibleName('Стержень 6, цель. Пустой.');
   await move(page, 1, 6);
@@ -70,7 +73,7 @@ test('maximum settings, last-rod target and contained horizontal scrolling', asy
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.width);
   if (testInfo.project.name === 'mobile') {
     const scroll = page.getByRole('region', { name: 'Игровое поле' });
-    expect(await scroll.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+    expect(await scroll.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(false);
   }
   await page.screenshot({ path: testInfo.outputPath('max-settings.png'), fullPage: true });
 });
@@ -79,10 +82,12 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Начать игру', exact: true }).focus();
   await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Ход за ходом' })).toBeFocused();
   await page.keyboard.press('Tab'); // Pause
+  await page.keyboard.press('Tab'); // Controls
   await page.keyboard.press('Tab'); // Settings
-  await page.keyboard.press('Tab'); // Scrollable field
+  await page.keyboard.press('Tab'); // Game field
   await page.keyboard.press('Tab'); // First rod
   await expect(rod(page, 1)).toBeFocused();
   expect(await rod(page, 1).evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
@@ -111,6 +116,7 @@ test('timer pauses in settings, preserves time through history, and resets for a
   const timer = page.getByRole('timer', { name: 'Время партии' });
   await page.clock.fastForward(5000);
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await expect(timer).toHaveText('00:00');
   await page.clock.runFor(1500);
   await expect(timer).toHaveText('00:01');
@@ -138,6 +144,7 @@ test('timer pauses in settings, preserves time through history, and resets for a
   await page.getByRole('button', { name: 'Настройки', exact: true }).click();
   await page.getByRole('radio', { name: '4', exact: true }).check();
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await expect(timer).toHaveText('00:00');
   await page.clock.runFor(1000);
   await expect(timer).toHaveText('00:01');
@@ -148,6 +155,7 @@ test('timer stops on victory, resumes after undo, and stops again on redo', asyn
   const timer = page.getByRole('timer', { name: 'Время партии' });
   await page.getByRole('slider', { name: 'Количество дисков' }).fill('3');
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await page.clock.runFor(3000);
   for (const [from, to] of [[1, 3], [1, 2], [3, 2], [1, 3], [2, 1], [2, 3], [1, 3]]) await move(page, from, to);
   await expect(page.getByRole('status')).toContainText('Время: 00:03');
@@ -176,6 +184,7 @@ for (const mode of ['Обычный', 'Хардкор']) {
     await page.getByRole('radio', { name: mode, exact: true }).check();
     await page.getByRole('slider').fill('10');
     await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+    await page.getByRole('button', { name: 'Играть', exact: true }).click();
     await move(page, 1, 2);
     await move(page, 2, 3);
     await page.getByRole('button', { name: 'Отменить', exact: true }).click();
@@ -227,6 +236,7 @@ for (const mode of ['Обычный', 'Хардкор']) {
     await page.getByRole('button', { name: 'Настройки', exact: true }).click();
     await page.getByRole('radio', { name: otherMode, exact: true }).check();
     await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+    await page.getByRole('button', { name: 'Играть', exact: true }).click();
     await expect(page.locator('.mode-badge')).toContainText(otherMode);
     await expect(page.locator('button.rod')).toHaveCount(3);
     await expect(page.getByRole('timer')).toHaveText('00:00');
@@ -243,6 +253,7 @@ test('hardcore settings, neighbour highlighting and invalid history branches', a
   await page.getByRole('slider').fill('10');
   await expect(page.getByText('Диски можно переносить только на соседний стержень.')).toBeVisible();
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await expect(page.locator('.mode-badge')).toHaveText('Хардкор · Только соседи');
   await rod(page, 1).click();
   await expect(rod(page, 2)).toHaveClass(/rod-available/);
@@ -269,6 +280,7 @@ test('hardcore victory in 26 moves, pause unavailable until undo', async ({ page
   await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
   await page.getByRole('slider').fill('3');
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
+  await page.getByRole('button', { name: 'Играть', exact: true }).click();
   await page.clock.runFor(3000);
   async function solveAdjacent(n: number, from: number, to: number): Promise<void> {
     if (!n) return;

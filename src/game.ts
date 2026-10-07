@@ -11,6 +11,8 @@ export type Game = Readonly<{
 }>;
 export type Action =
   | { type: 'select'; rod: number }
+  | { type: 'move'; from: number; to: number }
+  | { type: 'clearSelection' }
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'restart' }
@@ -56,8 +58,10 @@ export function moveError(board: Board, from: number, to: number, mode: GameMode
 }
 
 export function gameReducer(game: Game, action: Action): Game {
-  if (game.paused && (action.type === 'select' || action.type === 'undo' || action.type === 'redo')) return game;
+  if (game.paused && (action.type === 'select' || action.type === 'move' || action.type === 'undo' || action.type === 'redo')) return game;
   switch (action.type) {
+    case 'clearSelection': return { ...game, selected: null, error: null };
+    case 'move': return isWon(game) ? game : applyMove(game, action.from, action.to);
     case 'start': return createGame(action.config);
     case 'restart': return createGame(game.config);
     case 'pause': return isWon(game) ? game : { ...game, paused: true, selected: null, error: null };
@@ -74,17 +78,23 @@ export function gameReducer(game: Game, action: Action): Game {
           ? { ...game, selected: action.rod, error: null }
           : { ...game, error: 'На этом стержне нет дисков. Выберите другой.' };
       }
-      const error = moveError(board, game.selected, action.rod, game.config.mode);
-      if (error) return { ...game, error };
-      const next = board.map(rod => [...rod]);
-      next[action.rod].push(next[game.selected].pop()!);
-      return {
-        ...game,
-        history: [...game.history.slice(0, game.cursor + 1), next],
-        cursor: game.cursor + 1,
-        selected: null,
-        error: null,
-      };
+      return applyMove(game, game.selected, action.rod);
     }
   }
+}
+
+// All input methods share one validation and one history update.
+function applyMove(game: Game, from: number, to: number): Game {
+  const board = currentBoard(game);
+  const error = moveError(board, from, to, game.config.mode);
+  if (error) return { ...game, error };
+  const next = board.map(rod => [...rod]);
+  next[to].push(next[from].pop()!);
+  return {
+    ...game,
+    history: [...game.history.slice(0, game.cursor + 1), next],
+    cursor: game.cursor + 1,
+    selected: null,
+    error: null,
+  };
 }

@@ -169,6 +169,47 @@ describe('manual pause', () => {
   });
 });
 
+describe('direct moves from gestures', () => {
+  it.each(['classic', 'hardcore'] as const)('shares validation and history with taps in %s mode', mode => {
+    const initial = createGame({ ...DEFAULT_CONFIG, mode });
+    const direct = gameReducer(initial, { type: 'move', from: 0, to: 1 });
+    expect(direct).toEqual(move(initial, 0, 1));
+    expect(direct.history).toHaveLength(2);
+    const invalid = gameReducer(direct, { type: 'move', from: 0, to: 1 });
+    expect(invalid.error).toContain('Большой диск');
+    expect(invalid.history).toBe(direct.history);
+    const paused = gameReducer(direct, { type: 'pause' });
+    expect(gameReducer(paused, { type: 'move', from: 1, to: 2 })).toBe(paused);
+    const next = gameReducer(direct, { type: 'move', from: 1, to: 2 });
+    const undo = gameReducer(next, { type: 'undo' });
+    expect(gameReducer(undo, { type: 'move', from: 0, to: 1 }).history).toBe(next.history);
+    const branch = gameReducer(undo, { type: 'move', from: 1, to: 0 });
+    expect(branch.history).toHaveLength(3);
+    expect(currentBoard(branch)).toEqual(currentBoard(initial));
+    expect(gameReducer(branch, { type: 'redo' }).cursor).toBe(2);
+  });
+
+  it('rejects non-neighbours and out-of-bounds targets without changing history', () => {
+    const game = createGame({ ...DEFAULT_CONFIG, mode: 'hardcore' });
+    for (const to of [-1, 2, 3]) {
+      const invalid = gameReducer(game, { type: 'move', from: 0, to });
+      expect(invalid.error).not.toBeNull();
+      expect(invalid.history).toBe(game.history);
+      expect(invalid.cursor).toBe(0);
+    }
+  });
+
+  it('blocks direct moves after victory and clears selection without changing history', () => {
+    const game = createGame({ ...DEFAULT_CONFIG, disks: 3 });
+    const selected = gameReducer(game, { type: 'select', rod: 0 });
+    const cleared = gameReducer(selected, { type: 'clearSelection' });
+    expect(cleared.selected).toBeNull();
+    expect(cleared.history).toBe(game.history);
+    const won = solve(game, 3, 0, 2, 1);
+    expect(gameReducer(won, { type: 'move', from: 2, to: 1 })).toBe(won);
+  });
+});
+
 describe('history and victory', () => {
   it('undoes and redoes a complete game, including victory, at bounded endpoints', () => {
     const initial = createGame({ mode: 'classic', rods: 3, disks: 3 });
