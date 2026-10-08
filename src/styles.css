@@ -133,6 +133,7 @@ body.modal-open{overflow:hidden}
 }
 
 .pwa-entry{width:100%;margin-top:18px;background:#f5f7ef;font-size:12px}
+.settings-card .pwa-entry{margin-bottom:12px}
 .pwa-body{display:flex;flex-direction:column;gap:18px;font-size:13px;line-height:1.7}
 .pwa-brand{display:flex;align-items:center;gap:16px}.pwa-brand img{border-radius:14px;flex-shrink:0}.pwa-brand h3{font-size:18px}.pwa-brand p{font-size:11px;color:#7c8973}
 .pwa-body ol{margin:0;padding-left:22px}.pwa-body li+li{margin-top:8px}
