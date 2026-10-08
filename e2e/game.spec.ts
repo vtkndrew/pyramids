@@ -11,6 +11,8 @@ test('settings, history, errors, branching and restart', async ({ page }, testIn
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
+  expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
+  await expect(page.locator('link[rel="manifest"]')).toHaveCount(0);
   await expect(page.getByRole('radio', { name: '3', exact: true })).toBeChecked();
   await expect(page.getByRole('slider', { name: 'Количество дисков' })).toHaveValue('5');
   await page.screenshot({ path: testInfo.outputPath('settings.png'), fullPage: true });
@@ -89,6 +91,7 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
     await page.keyboard.press('Tab'); // Pause
     await page.keyboard.press('Tab'); // Controls
     await page.keyboard.press('Tab'); // Settings
+    await page.keyboard.press('Tab'); // Application
   } else {
     await page.getByRole('region', { name: 'Игровое поле' }).focus();
   }

@@ -3,6 +3,8 @@ import { createGame, currentBoard, DEFAULT_CONFIG, gameReducer, isWon, type Conf
 import BoardView from './BoardView';
 import ControlDialog from './ControlDialog';
 import Dialog from './Dialog';
+import PwaPanel from './PwaPanel';
+import { usePwa } from './pwa';
 import { useCompactLayout } from './useCompactLayout';
 import { defaultControl, CONTROL_HINTS, CONTROL_LABELS, type ControlMode } from './controls';
 import { formatElapsed, useGameTimer } from './useGameTimer';
@@ -30,8 +32,8 @@ function countLabel(count: number, few: string, many: string) {
 }
 
 
-function SettingsForm({ config, onChange, onStart, onBack, modal = false }: {
-  config: Config; onChange: (config: Config) => void; onStart: () => void; onBack?: () => void; modal?: boolean;
+function SettingsForm({ config, onChange, onStart, onBack, modal = false, onApplication, applicationLabel }: {
+  config: Config; onChange: (config: Config) => void; onStart: () => void; onBack?: () => void; modal?: boolean; onApplication: () => void; applicationLabel: string;
 }) {
   return <form className={modal ? 'dialog-form' : undefined} onSubmit={event => { event.preventDefault(); onStart(); }}>
     <div className={modal ? 'dialog-body settings-fields' : 'settings-fields'}>
@@ -48,6 +50,7 @@ function SettingsForm({ config, onChange, onStart, onBack, modal = false }: {
           <p id="mode-description" className="mode-description">{config.mode === 'hardcore' ? 'Диски можно переносить только на соседний стержень.' : 'Переносите диски на любой подходящий стержень.'}</p>
         </fieldset>
       {!modal && <p className="settings-hint"><Icon name="info" /><span>Больше дисков — больше шагов.<br />Больше стержней — больше свободы.</span></p>}
+      <button type="button" className="button pwa-entry" onClick={event => { event.currentTarget.focus(); onApplication(); }}>{applicationLabel}</button>
     </div>
     <div className={modal ? 'dialog-footer' : undefined}>
       <button className="button button-primary start-button" type="submit">Начать игру <Icon name="arrow" /></button>
@@ -56,8 +59,8 @@ function SettingsForm({ config, onChange, onStart, onBack, modal = false }: {
   </form>;
 }
 
-function Settings({ config, onChange, hasGame, onStart, onBack, hidePreview }: {
-  config: Config; onChange: (config: Config) => void; hasGame: boolean; hidePreview: boolean; onStart: () => void; onBack: () => void;
+function Settings({ config, onChange, hasGame, onStart, onBack, hidePreview, onApplication, applicationLabel }: {
+  config: Config; onChange: (config: Config) => void; hasGame: boolean; hidePreview: boolean; onStart: () => void; onBack: () => void; onApplication: () => void; applicationLabel: string;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
@@ -71,7 +74,7 @@ function Settings({ config, onChange, hasGame, onStart, onBack, hidePreview }: {
       <div className="settings-icon"><Icon name="settings" /></div>
       <h2 id="settings-title" ref={heading} tabIndex={-1}>Ваша головоломка</h2>
       <p className="muted settings-description">Выберите сложность и найдите свой путь к решению.</p>
-      <SettingsForm config={config} onChange={onChange} onStart={onStart} onBack={hasGame ? onBack : undefined} />
+      <SettingsForm onApplication={onApplication} applicationLabel={applicationLabel} config={config} onChange={onChange} onStart={onStart} onBack={hasGame ? onBack : undefined} />
     </section>
   </div><Rules mode={config.mode} /></>;
 }
@@ -84,11 +87,14 @@ function Rules({ mode, control = 'tap' }: { mode: GameMode; control?: ControlMod
   </section>;
 }
 
-type Panel = 'settings' | 'controls' | 'menu' | 'rules' | null;
-const PANEL_TITLES = { settings: 'Ваша головоломка', controls: 'Управление', menu: 'Меню партии', rules: 'Как играть' };
+type Panel = 'settings' | 'controls' | 'menu' | 'rules' | 'application' | 'update' | null;
+const PANEL_TITLES = { settings: 'Ваша головоломка', controls: 'Управление', menu: 'Меню партии', rules: 'Как играть', application: 'Приложение', update: 'Обновить приложение?' };
 
 export default function App() {
   const compact = useCompactLayout();
+  const pwa = usePwa();
+  const applicationLabel = pwa.installed ? 'Приложение' : 'Установить приложение';
+  const [pwaReturn, setPwaReturn] = useState<Panel>(null);
   const [game, dispatch] = useReducer(gameReducer, DEFAULT_CONFIG, createGame);
   const [hasGame, setHasGame] = useState(false);
   const [timerSession, setTimerSession] = useState(0);
@@ -106,7 +112,7 @@ export default function App() {
   const elapsed = useGameTimer(hasGame && !panel && !won && !game.paused, timerSession);
   const elapsedLabel = formatElapsed(elapsed);
   const future = game.history.length - 1 - game.cursor;
-  const desktopSettings = !compact && (panel === 'settings' || panel === 'controls' && newGameControls);
+  const desktopSettings = !compact && (panel === 'settings' || panel === 'controls' && newGameControls || (panel === 'application' || panel === 'update') && pwaReturn === 'settings');
   const modal = panel !== null && (compact || panel !== 'settings');
 
   useEffect(() => {
@@ -135,12 +141,18 @@ export default function App() {
     if (next === 'controls') { setNewGameControls(false); setControlDraft(control); }
     setPanel(next);
   }
+  function openApplication() {
+    setPwaReturn(panel === 'settings' || panel === 'menu' ? panel : null);
+    openPanel('application', fromMenu || panel === 'menu');
+  }
   function chooseNewControls() {
     setNewGameControls(true);
     setControlDraft(defaultControl(draft.mode));
     setPanel('controls');
   }
   function closePanel() {
+    if (panel === 'update') { setPanel('application'); return; }
+    if (panel === 'application' && pwaReturn === 'settings') { setPanel('settings'); return; }
     setPanel(panel === 'controls' && newGameControls ? 'settings' : null);
   }
   function togglePause() {
@@ -174,7 +186,7 @@ export default function App() {
     <header className="site-header"><a href="./" className="brand" aria-label="Пирамидки — на главную"><img src={`${import.meta.env.BASE_URL}favicon.svg`} width="38" height="38" alt="" /><span>пирамидки<span className="brand-dot">.</span></span></a><span className="header-caption">Маленькие шаги. Большое решение.</span><span className="header-badge"><span /> Время подумать</span></header>
     <main>
       <section className="intro"><div><p className="eyebrow"><span className="tiny-star">✳</span> Классическая головоломка</p><h1>Всё сложится<span className="title-dot">.</span></h1><p className="intro-description">Несколько дисков и одно простое правило.<br className="desktop-break" /> Перенесите пирамидку — ход за ходом.</p></div><div className="intro-aside"><span className="orbit-mark" aria-hidden="true">↗</span><p>Не спешите.<br />Здесь важен каждый ход.</p></div></section>
-      {desktopSettings ? <Settings config={draft} onChange={setDraft} hasGame={hasGame} onBack={() => setPanel(null)} hidePreview={modal} onStart={chooseNewControls} /> : hasGame ?
+      {desktopSettings ? <Settings onApplication={openApplication} applicationLabel={applicationLabel} config={draft} onChange={setDraft} hasGame={hasGame} onBack={() => setPanel(null)} hidePreview={modal} onStart={chooseNewControls} /> : hasGame ?
         <section className={`game-card ${won ? 'game-won' : ''}`} aria-labelledby="game-title">
           <div className="game-heading">
             <div className="game-title-block">
@@ -190,7 +202,7 @@ export default function App() {
               </div>
               <div className="move-count"><strong className="move-value">{game.cursor}</strong><span>Ходов</span></div>
               {!compact && <><button type="button" className="button control-button" onClick={() => openPanel('controls')}>Управление</button>
-                <button type="button" className="button button-settings" aria-label="Настройки" onClick={() => openPanel('settings')}><Icon name="settings" /><span>Настройки</span></button></>}
+                <button type="button" className="button button-settings" aria-label="Настройки" onClick={() => openPanel('settings')}><Icon name="settings" /><span>Настройки</span></button><button type="button" className="button pwa-header-button" aria-label={applicationLabel} onClick={event => { event.currentTarget.focus(); openApplication(); }}>{applicationLabel}{pwa.needRefresh && <span className="update-dot" aria-hidden="true" />}</button></>}
             </div>
           </div>
           <div ref={fieldRef} className="play-area" style={!compact && (game.paused || panel) ? { height: pausedFieldHeight } : undefined}>
@@ -208,7 +220,7 @@ export default function App() {
             <button className="button" type="button" disabled={game.paused || !!panel || game.cursor === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" /><span>Отменить</span></button>
             <button className="button" type="button" disabled={game.paused || !!panel || future === 0} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" /><span>Повторить</span></button>
           </div>
-            {compact ? <>{pauseControl}<button type="button" className="button menu-button" data-return-focus onClick={() => openPanel('menu')}><Icon name="menu" /><span>Меню</span></button></>
+            {compact ? <>{pauseControl}<button type="button" className="button menu-button" data-return-focus onClick={event => { event.currentTarget.focus(); openPanel('menu'); }}><Icon name="menu" /><span>Меню</span>{pwa.needRefresh && <span className="update-dot" aria-hidden="true" />}</button></>
               : <><span className="history-position">Шаг {game.cursor} из {game.history.length - 1}</span><button type="button" className="button restart-button" onClick={() => startGame(game.config)}><Icon name="restart" />Начать заново</button></>}
           </div>
         </section>
@@ -220,8 +232,8 @@ export default function App() {
       {hasGame && !desktopSettings && !compact && <Rules mode={game.config.mode} control={control} />}
     </main>
     {modal && <Dialog title={PANEL_TITLES[panel]} view={panel} onClose={closePanel}
-      onBack={panel === 'controls' && newGameControls ? () => setPanel('settings') : fromMenu && panel !== 'menu' ? () => setPanel('menu') : undefined}>
-      {panel === 'settings' && <SettingsForm modal config={draft} onChange={setDraft} onStart={chooseNewControls} onBack={hasGame ? () => setPanel(null) : undefined} />}
+      onBack={panel === 'application' || panel === 'update' ? undefined : panel === 'controls' && newGameControls ? () => setPanel('settings') : fromMenu && panel !== 'menu' ? () => setPanel('menu') : undefined}>
+      {panel === 'settings' && <SettingsForm modal onApplication={openApplication} applicationLabel={applicationLabel} config={draft} onChange={setDraft} onStart={chooseNewControls} onBack={hasGame ? () => setPanel(null) : undefined} />}
       {panel === 'controls' && <ControlDialog mode={newGameControls ? draft.mode : game.config.mode} control={controlDraft} newGame={newGameControls} onChange={setControlDraft} onConfirm={() => {
         setControl(controlDraft);
         if (newGameControls) startGame(draft); else setPanel(null);
@@ -236,11 +248,14 @@ export default function App() {
             <button type="button" className="button" onClick={() => openPanel('settings', true)}><Icon name="settings" />Настройки</button>
             <button type="button" className="button" onClick={() => openPanel('controls', true)}>Управление</button>
             <button type="button" className="button" onClick={() => openPanel('rules', true)}><Icon name="info" />Правила</button>
+            <button type="button" className="button" aria-label={applicationLabel} onClick={openApplication}>{applicationLabel}</button>
+            {pwa.needRefresh && <button type="button" className="button update-entry" onClick={openApplication}>Доступна новая версия</button>}
             <button type="button" className="button" onClick={() => startGame(game.config)}><Icon name="restart" />Начать заново</button>
           </div>
         </div>
         <div className="dialog-footer"><button type="button" className="button button-primary start-button" onClick={() => setPanel(null)}>Назад к игре</button></div>
       </>}
+      {(panel === 'application' || panel === 'update') && <PwaPanel confirmUpdate={panel === 'update'} onConfirmUpdate={() => setPanel('update')} onBack={() => setPanel(panel === 'update' ? 'application' : pwaReturn)} />}
       {panel === 'rules' && <><div className="dialog-body"><Rules mode={game.config.mode} control={control} /><p className="control-extra">Брать можно только верхний диск. Нажатия работают при любом управлении. Пауза скрывает поле и останавливает время. Новый ход после отмены заменяет будущие ходы.</p></div><div className="dialog-footer"><button type="button" className="button button-primary start-button" onClick={() => setPanel(null)}>Назад к игре</button></div></>}
     </Dialog>}
     <footer><span>Простые правила. Красивые решения.</span><span>Сделайте паузу для мысли <span className="footer-spark">✳</span></span></footer>

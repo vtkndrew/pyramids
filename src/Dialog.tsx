@@ -16,7 +16,7 @@ export default function Dialog({ title, view, onClose, onBack, children }: {
       document.body.classList.remove('modal-open');
       void Promise.resolve().then(() => {
         if (document.querySelector('dialog[open]')) return;
-        const target = previousFocus?.isConnected && previousFocus.getClientRects().length
+        const target = previousFocus?.isConnected && previousFocus !== document.body && previousFocus.getBoundingClientRect().width > 1
           ? previousFocus : document.querySelector<HTMLElement>('[data-return-focus]');
         target?.focus({ preventScroll: true });
       });
