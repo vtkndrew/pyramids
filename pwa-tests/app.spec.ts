@@ -63,28 +63,28 @@ test('cached app cold-starts offline and keeps all game actions usable', async (
   const response = await next.goto('/pyramids/');
   expect(response?.fromServiceWorker()).toBe(true);
   await button(next, 'Продолжить партию').click();
-  await expect(next.locator('.move-value')).toHaveText('1');
+  await expect(next.locator('[data-testid=move-value]')).toHaveText('1');
   await button(next, 'Отменить').click(); await button(next, 'Повторить').click();
   await button(next, 'Меню').click(); await button(next, 'История игр').click();
-  await expect(next.locator('.saved-game')).toHaveCount(1);
+  await expect(next.locator('[data-testid~=saved-game]')).toHaveCount(1);
   await button(next, 'Назад').click(); await button(next, 'Настройки').click();
   await next.getByRole('radio', { name: 'Хардкор', exact: true }).check();
   await start(next);
-  await expect(next.locator('.move-value')).toHaveText('0');
+  await expect(next.locator('[data-testid=move-value]')).toHaveText('0');
   await expect(next.getByRole('timer')).toHaveText('00:00');
   const r = (await rod(next, 1).boundingBox())!;
   await next.mouse.move(r.x + r.width / 2, r.y + r.height / 2); await next.mouse.down();
   await next.mouse.move(r.x + r.width / 2 + 40, r.y + r.height / 2, { steps: 5 }); await next.mouse.up();
-  await expect(next.locator('.move-value')).toHaveText('1');
+  await expect(next.locator('[data-testid=move-value]')).toHaveText('1');
   await button(next, 'Отменить').click(); await button(next, 'Повторить').click();
-  await button(next, 'Пауза').click(); await expect(next.locator('.rod')).toHaveCount(0);
-  await next.locator('.pause-button').click();
+  await button(next, 'Пауза').click(); await expect(next.locator('[data-testid~=rod]')).toHaveCount(0);
+  await next.locator('[data-testid~=pause-button]').click();
   await expect(rod(next, 2)).toHaveAccessibleName(/Верхний диск: 1/);
   expect(await next.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   // App-shell navigation fallback stays inside the repository scope.
   expect((await next.goto('/pyramids/offline-route'))?.fromServiceWorker()).toBe(true);
   await expect(button(next, 'Продолжить партию')).toBeVisible();
-  await button(next, 'История игр').click(); await expect(next.locator('.saved-game')).toHaveCount(2);
+  await button(next, 'История игр').click(); await expect(next.locator('[data-testid~=saved-game]')).toHaveCount(2);
 });
 
 test('install request is user-triggered, consumed once, and handles acceptance and cancellation', async ({ page }) => {
@@ -137,7 +137,7 @@ test('application panel preserves draft, manual pause, focus and compact bounds'
   await start(page); await rod(page, 1).tap(); await rod(page, 3).tap();
   await button(page, 'Пауза').click(); await appPanel(page);
   const time = await page.locator('[role="timer"]').textContent();
-  await expect(page.locator('.rod')).toHaveCount(0);
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
   await page.setViewportSize({ width: 568, height: 280 });
   for (const locator of [page.getByRole('dialog'), button(page, 'Закрыть окно'), button(page, 'Назад')]) {
     const r = (await locator.boundingBox())!;
@@ -152,9 +152,9 @@ test('application panel preserves draft, manual pause, focus and compact bounds'
   await expect(button(page, 'Меню')).toBeFocused();
   await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
   await expect(page.getByRole('timer')).toHaveText(time!);
-  await page.locator('.pause-button').click();
-  await expect(page.locator('.move-value')).toHaveText('1');
-  await expect(page.locator('.game-toolbar .button')).toHaveCount(4);
+  await page.locator('[data-testid~=pause-button]').click();
+  await expect(page.locator('[data-testid=move-value]')).toHaveText('1');
+  await expect(page.locator('[data-testid~=game-toolbar] button')).toHaveCount(4);
 });
 
 test('failed worker registration does not prevent online play', async ({ page }) => {
@@ -166,7 +166,7 @@ test('failed worker registration does not prevent online play', async ({ page })
   await expect(page.getByText('Готово к работе без интернета.', { exact: true })).toHaveCount(0);
   await button(page, 'Назад').click(); await start(page);
   await rod(page, 1).tap(); await rod(page, 3).tap();
-  await expect(page.locator('.move-value')).toHaveText('1');
+  await expect(page.locator('[data-testid=move-value]')).toHaveText('1');
 });
 
 test('new build waits for consent; deferral preserves game; activation cleans only its cache', async ({ page, context }) => {
@@ -189,26 +189,26 @@ test('new build waits for consent; deferral preserves game; activation cleans on
   await page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())!.update(); });
   await expect.poll(() => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())?.waiting)).toBe(true);
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
-  await expect(page.locator('.move-value')).toHaveText('1');
+  await expect(page.locator('[data-testid=move-value]')).toHaveText('1');
   await button(page, 'Меню').click();
   await expect(button(page, 'Доступна новая версия')).toBeVisible();
   await appPanel(page); await button(page, 'Обновить').click();
   await expect(page.getByText('Игра сохранится и перезапустится. После обновления можно продолжить последнюю партию.')).toBeVisible();
   await button(page, 'Позже').click(); await page.keyboard.press('Escape');
-  await expect(page.locator('.move-value')).toHaveText('1');
+  await expect(page.locator('[data-testid=move-value]')).toHaveText('1');
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
   await appPanel(page); await button(page, 'Обновить').click();
   await page.evaluate(() => { document.documentElement.dataset.rejectSave = 'yes'; });
   await button(page, 'Обновить и перезапустить').click();
   await expect(page.getByText('Не удалось сохранить партию. Обновление отложено; повторите сохранение.')).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
-  await expect(page.locator('.move-value')).toHaveText('1');
+  await expect(page.locator('[data-testid=move-value]')).toHaveText('1');
   await page.evaluate(() => { delete document.documentElement.dataset.rejectSave; });
   await button(page, 'Обновить и перезапустить').click();
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'two', { timeout: 15_000 });
   await expect(button(page, 'Продолжить партию')).toBeVisible();
   await button(page, 'Продолжить партию').click();
-  await expect(page.locator('.move-value')).toHaveText('1');
+  await expect(page.locator('[data-testid=move-value]')).toHaveText('1');
   expect(await page.locator('script[type="module"]').getAttribute('src')).not.toBe(oldScript);
   await expect(otherTab.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
   await expect(button(otherTab, 'Продолжить партию')).toBeVisible();

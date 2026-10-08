@@ -1,0 +1,70 @@
+.rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 45px;
+  padding: 40px 8px 45px;
+}
+.rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.rule-index {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #dde3d4;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  color: #859775;
+  flex-shrink: 0;
+}
+.rule h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 1px 0 8px;
+  color: #52654b;
+}
+.rule p {
+  font-size: 11px;
+  line-height: 1.75;
+  color: #919987;
+  max-width: 250px;
+}
+@media (max-width: 1000px) {
+  .rules {
+    gap: 22px;
+  }
+}
+@media (max-width: 760px) {
+  .rules {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 30px 3px;
+  }
+  .rule p {
+    max-width: 100%;
+    font-size: 12px;
+  }
+  .rule h3 {
+    font-size: 13px;
+  }
+  .rule-index {
+    width: 30px;
+    height: 30px;
+  }
+  .rule {
+    gap: 15px;
+  }
+}
+.rules.modal .rule p {
+  max-width: none;
+  font-size: 12px;
+}
+.rules.modal {
+  grid-template-columns: 1fr;
+  padding: 0;
+  gap: 22px;
+  margin-bottom: 24px;
+}

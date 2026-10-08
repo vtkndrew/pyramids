@@ -1,0 +1,68 @@
+.pwa-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pwa-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pwa-brand img {
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+.pwa-brand h3 {
+  font-size: 18px;
+}
+.pwa-brand p {
+  font-size: 11px;
+  color: #7c8973;
+}
+.pwa-body ol {
+  margin: 0;
+  padding-left: 22px;
+}
+.pwa-body li + li {
+  margin-top: 8px;
+}
+.pwa-status {
+  border-top: 1px solid #e4e9de;
+  padding-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+.pwa-status h3 {
+  font-size: 14px;
+}
+.pwa-status p:last-of-type {
+  color: #798571;
+  font-size: 12px;
+}
+.pwa-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pwa-actions .action {
+  flex: 1;
+  min-height: 44px;
+}
+.pwa-actions .primary-action {
+  flex-basis: 100%;
+  white-space: normal;
+}
+@media (max-height: 500px) {
+  .pwa-brand img {
+    width: 44px;
+    height: 44px;
+  }
+  .pwa-body {
+    gap: 12px;
+  }
+  .pwa-actions .primary-action {
+    flex-basis: auto;
+  }
+}

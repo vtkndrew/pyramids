@@ -37,7 +37,7 @@ test('settings, history, errors, branching and restart', async ({ page }, testIn
   await page.getByRole('slider', { name: 'Количество дисков' }).fill('10');
   await page.getByRole('button', { name: 'Назад к игре', exact: true }).click();
   await expectStep(page, 2, 2);
-  await expect(page.locator('button.rod')).toHaveCount(3);
+  await expect(page.locator('button[data-testid~=rod]')).toHaveCount(3);
   await menuAction(page, 'Начать заново');
   await expect(rod(page, 1)).toHaveAccessibleName('Стержень 1, старт. Диски снизу вверх: 5, 4, 3, 2, 1. Верхний диск: 1.');
   await expectStep(page, 0, 0);
@@ -68,7 +68,7 @@ test('maximum settings, last-rod target and no horizontal scrolling', async ({ p
   await page.getByRole('slider', { name: 'Количество дисков' }).fill('10');
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
   await page.getByRole('button', { name: 'Играть', exact: true }).click();
-  await expect(page.locator('button.rod')).toHaveCount(6);
+  await expect(page.locator('button[data-testid~=rod]')).toHaveCount(6);
   await expect(rod(page, 6)).toHaveAccessibleName('Стержень 6, цель. Пустой.');
   await move(page, 1, 6);
   await expect(rod(page, 6)).toHaveAccessibleName('Стержень 6, цель. Диски снизу вверх: 1. Верхний диск: 1.');
@@ -86,7 +86,7 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
   await page.getByRole('button', { name: 'Начать игру', exact: true }).focus();
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Играть', exact: true }).click();
-  if (!(await page.locator('.compact-app').count())) {
+  if (!(await page.locator('[data-compact=true]').count())) {
     await expect(page.getByRole('heading', { name: 'Ход за ходом' })).toBeFocused();
     await page.keyboard.press('Tab'); // Pause
     await page.keyboard.press('Tab'); // Controls
@@ -96,7 +96,7 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
   } else {
     await page.getByRole('region', { name: 'Игровое поле' }).focus();
   }
-  if (!(await page.locator('.compact-app').count())) await page.keyboard.press('Tab'); // Game field
+  if (!(await page.locator('[data-compact=true]').count())) await page.keyboard.press('Tab'); // Game field
   await page.keyboard.press('Tab'); // First rod
   await expect(rod(page, 1)).toBeFocused();
   expect(await rod(page, 1).evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
@@ -199,20 +199,20 @@ for (const mode of ['Обычный', 'Хардкор']) {
     await page.getByRole('button', { name: 'Отменить', exact: true }).click();
     await move(page, 1, 2); // An error and selection must both clear on pause.
     await expect(page.getByRole('status')).toContainText('Большой диск');
-    const board = await page.locator('button.rod').evaluateAll(rods => rods.map(rod => rod.getAttribute('aria-label')));
-    const height = await page.locator('.play-area').evaluate(el => el.getBoundingClientRect().height);
+    const board = await page.locator('button[data-testid~=rod]').evaluateAll(rods => rods.map(rod => rod.getAttribute('aria-label')));
+    const height = await page.locator('[data-testid~=play-area]').evaluate(el => el.getBoundingClientRect().height);
     await page.clock.runFor(1500);
     await page.getByRole('button', { name: 'Пауза', exact: true }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
-    await expect(page.locator('.disk, .rod')).toHaveCount(0);
+    await expect(page.locator('[data-testid~=disk], [data-testid~=rod]')).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Игровое поле' })).toHaveCount(0);
     await expect(page.getByRole('status')).not.toContainText('Выбран диск');
     await expect(page.getByRole('status')).not.toContainText('Большой диск');
-    expect(await page.locator('.play-area').evaluate(el => el.getBoundingClientRect().height)).toBe(height);
+    expect(await page.locator('[data-testid~=play-area]').evaluate(el => el.getBoundingClientRect().height)).toBe(height);
     await expect(page.getByRole('button', { name: 'Отменить', exact: true })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Повторить', exact: true })).toBeDisabled();
-    await expect(page.locator('.pause-button')).toBeFocused();
+    await expect(page.locator('[data-testid~=pause-button]')).toBeFocused();
     await page.clock.fastForward(60_000);
     await expect(page.getByRole('timer')).toHaveText('00:01');
     await page.screenshot({ path: testInfo.outputPath('paused.png'), fullPage: true });
@@ -221,14 +221,14 @@ for (const mode of ['Обычный', 'Хардкор']) {
     await page.getByRole('radio', { name: otherMode, exact: true }).check();
     await page.getByRole('button', { name: 'Назад к игре', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
-    await expect(page.locator('.mode-badge')).toContainText(mode);
+    await expect(page.locator('[data-testid~=mode-badge]')).toContainText(mode);
     await page.clock.runFor(2000);
     await expect(page.getByRole('timer')).toHaveText('00:01');
-    await page.locator('.pause-panel').getByRole('button', { name: 'Продолжить', exact: true }).focus();
+    await page.locator('[data-testid~=pause-panel]').getByRole('button', { name: 'Продолжить', exact: true }).focus();
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: 'Пауза', exact: true })).toBeFocused();
-    expect(await page.locator('button.rod').evaluateAll(rods => rods.map(rod => rod.getAttribute('aria-label')))).toEqual(board);
-    await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
+    expect(await page.locator('button[data-testid~=rod]').evaluateAll(rods => rods.map(rod => rod.getAttribute('aria-label')))).toEqual(board);
+    await expect(page.locator('button[data-testid~=rod][aria-pressed="true"]')).toHaveCount(0);
     await page.clock.runFor(500);
     await expect(page.getByRole('timer')).toHaveText('00:02');
     await page.getByRole('button', { name: 'Повторить', exact: true }).click();
@@ -237,8 +237,8 @@ for (const mode of ['Обычный', 'Хардкор']) {
     await menuAction(page, 'Начать заново');
     await expect(page.getByRole('timer')).toHaveText('00:00');
     await expectStep(page, 0, 0);
-    await expect(page.locator('button.rod')).toHaveCount(3);
-    await expect(page.locator('.mode-badge')).toContainText(mode);
+    await expect(page.locator('button[data-testid~=rod]')).toHaveCount(3);
+    await expect(page.locator('[data-testid~=mode-badge]')).toContainText(mode);
     await page.clock.runFor(1000);
     await expect(page.getByRole('timer')).toHaveText('00:01');
     await page.getByRole('button', { name: 'Пауза', exact: true }).click();
@@ -246,8 +246,8 @@ for (const mode of ['Обычный', 'Хардкор']) {
     await page.getByRole('radio', { name: otherMode, exact: true }).check();
     await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
     await page.getByRole('button', { name: 'Играть', exact: true }).click();
-    await expect(page.locator('.mode-badge')).toContainText(otherMode);
-    await expect(page.locator('button.rod')).toHaveCount(3);
+    await expect(page.locator('[data-testid~=mode-badge]')).toContainText(otherMode);
+    await expect(page.locator('button[data-testid~=rod]')).toHaveCount(3);
     await expect(page.getByRole('timer')).toHaveText('00:00');
     await page.clock.runFor(1000);
     await expect(page.getByRole('timer')).toHaveText('00:01');
@@ -263,10 +263,10 @@ test('hardcore settings, neighbour highlighting and invalid history branches', a
   await expect(page.getByText('Диски можно переносить только на соседний стержень.')).toBeVisible();
   await page.getByRole('button', { name: 'Начать игру', exact: true }).click();
   await page.getByRole('button', { name: 'Играть', exact: true }).click();
-  await expect(page.locator('.mode-badge')).toContainText('Хардкор');
+  await expect(page.locator('[data-testid~=mode-badge]')).toContainText('Хардкор');
   await rod(page, 1).click();
-  await expect(rod(page, 2)).toHaveClass(/rod-available/);
-  await expect(rod(page, 3)).not.toHaveClass(/rod-available/);
+  await expect(rod(page, 2)).toHaveAttribute('data-available', 'true');
+  await expect(rod(page, 3)).not.toHaveAttribute('data-available', 'true');
   await rod(page, 6).click();
   await expect(page.getByRole('status')).toContainText('только на соседний');
   await expect(rod(page, 1)).toHaveAttribute('aria-pressed', 'true');
@@ -312,7 +312,7 @@ test('hardcore victory in 26 moves, pause unavailable until undo', async ({ page
   await page.getByRole('button', { name: 'Пауза', exact: true }).click();
   await page.clock.runFor(1000);
   await expect(page.getByRole('timer')).toHaveText('00:04');
-  await page.locator('.pause-button').click();
+  await page.locator('[data-testid~=pause-button]').click();
   await page.getByRole('button', { name: 'Повторить', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Всё получилось!' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Пауза', exact: true })).toBeDisabled();

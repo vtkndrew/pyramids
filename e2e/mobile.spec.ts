@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { button, menuAction } from './helpers';
 
 const rod = (page: Page, n: number) => page.locator(`button[data-rod="${n - 1}"]`);
-const moveCount = (page: Page) => page.locator('.move-value');
+const moveCount = (page: Page) => page.locator('[data-testid=move-value]');
 async function start(page: Page, mode = 'Обычный', disks = 5) {
   await page.goto('/');
   await page.getByRole('radio', { name: mode, exact: true }).check();
@@ -12,25 +12,25 @@ async function start(page: Page, mode = 'Обычный', disks = 5) {
 async function assertFits(page: Page) {
   const metrics = await page.evaluate(() => {
     const doc = document.documentElement;
-    const board = document.querySelector('.play-area')!.getBoundingClientRect();
+    const board = document.querySelector('[data-testid~=play-area]')!.getBoundingClientRect();
     const outside: string[] = [];
-    for (const el of document.querySelectorAll('.rod, .disk, .disk span, .rod-top-label, .rod-number, .game-toolbar .button, .game-toolbar .button span, .game-toolbar .button svg, .game-heading, .game-message')) {
+    for (const el of document.querySelectorAll('[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span, [data-testid~=rod-top-label], [data-testid~=rod-number], [data-testid~=game-toolbar] button, [data-testid~=game-toolbar] button span, [data-testid~=game-toolbar] button svg, [data-testid~=game-heading], [data-testid~=game-message]')) {
       const r = el.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0 || r.left < 0 || r.top < 0 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) outside.push(el.className);
-      if (el.matches('.rod, .disk, .disk span') && (r.left < board.left - 1 || r.right > board.right + 1 || r.top < board.top - 1 || r.bottom > board.bottom + 1)) outside.push(`board:${el.className}`);
-      if (el.matches('.disk span')) {
+      if (el.matches('[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span') && (r.left < board.left - 1 || r.right > board.right + 1 || r.top < board.top - 1 || r.bottom > board.bottom + 1)) outside.push(`board:${el.className}`);
+      if (el.matches('[data-testid~=disk] span')) {
         const disk = el.parentElement!.getBoundingClientRect();
         if (r.top < disk.top - 1 || r.bottom > disk.bottom + 1 || r.left < disk.left - 1 || r.right > disk.right + 1) outside.push('disk label');
       }
-      if (el.matches('.game-toolbar .button span, .game-toolbar .button svg')) {
+      if (el.matches('[data-testid~=game-toolbar] button span, [data-testid~=game-toolbar] button svg')) {
         const button = el.closest('button')!.getBoundingClientRect();
         if (r.top < button.top || r.bottom > button.bottom || r.left < button.left || r.right > button.right) outside.push('button contents');
       }
     }
-    const buttons = [...document.querySelectorAll('.game-toolbar .button')].map(el => el.getBoundingClientRect());
+    const buttons = [...document.querySelectorAll('[data-testid~=game-toolbar] button')].map(el => el.getBoundingClientRect());
     const controlsFit = buttons.length === 4 && buttons.every((r, i) => r.height >= 44 && (i === 0 || r.left >= buttons[i - 1].right));
-    const heading = document.querySelector('.game-heading')!.getBoundingClientRect();
-    const message = document.querySelector('.game-message')!.getBoundingClientRect();
+    const heading = document.querySelector('[data-testid~=game-heading]')!.getBoundingClientRect();
+    const message = document.querySelector('[data-testid~=game-message]')!.getBoundingClientRect();
     return { outside, controlsFit, rowsFit: heading.bottom <= board.top + 1 && board.bottom <= message.top + 1,
       noScroll: doc.scrollWidth <= doc.clientWidth && doc.scrollHeight <= doc.clientHeight && document.body.scrollHeight <= innerHeight && scrollX === 0 && scrollY === 0 };
   });
@@ -47,7 +47,7 @@ for (const [width, height] of [[320, 480], [360, 640], [390, 844], [430, 932], [
       await page.getByRole('radio', { name: disks % 2 ? 'Обычный' : 'Хардкор', exact: true }).check();
       await button(page, 'Начать игру').click(); await button(page, 'Играть').click();
       await expect(rod(page, rods)).toBeVisible();
-      await expect(page.locator('.disk')).toHaveCount(disks);
+      await expect(page.locator('[data-testid~=disk]')).toHaveCount(disks);
       await assertFits(page);
       await rod(page, 1).click(); // Raised selection also has to fit.
       await assertFits(page);
@@ -60,12 +60,12 @@ for (const [width, height] of [[320, 480], [360, 640], [390, 844], [430, 932], [
 test('initial settings, draft, modal scrolling, focus and responsive transitions', async ({ page }) => {
   await page.setViewportSize({ width: 568, height: 280 }); await page.goto('/');
   await expect(page.getByRole('dialog')).toHaveCount(1);
-  await expect(page.locator('.rod')).toHaveCount(0);
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
   const dialogBounds = await page.getByRole('dialog').boundingBox();
   const startBounds = await button(page, 'Начать игру').boundingBox();
   expect(dialogBounds!.y).toBeGreaterThanOrEqual(0);
   expect(startBounds!.y + startBounds!.height).toBeLessThanOrEqual(280);
-  expect(await page.locator('.dialog-body').evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+  expect(await page.locator('[data-testid~=dialog-body]').evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
   await page.getByRole('radio', { name: '6', exact: true }).check();
   await page.getByRole('slider').fill('10');
   await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
@@ -110,7 +110,7 @@ test('menu freezes time and preserves manual pause, history and controls', async
   await rod(page, 1).tap(); await rod(page, 3).tap();
   await page.clock.runFor(1500); await button(page, 'Меню').click();
   await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
-  await expect(page.locator('.rod')).toHaveCount(0);
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
   await page.clock.runFor(60_000);
   await button(page, 'Правила').click(); await page.clock.runFor(60_000);
   await button(page, 'Назад').click(); await button(page, 'Управление').click();
@@ -126,16 +126,16 @@ test('menu freezes time and preserves manual pause, history and controls', async
   await button(page, 'Назад к игре').click();
   await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
   await page.clock.runFor(10_000); await expect(page.getByRole('timer')).toHaveText('00:02');
-  await expect(page.locator('.mode-badge')).toHaveText('Обычный');
-  await page.locator('.pause-button').click();
-  await expect(page.locator('.control-tap')).toBeVisible();
+  await expect(page.locator('[data-testid~=mode-badge]')).toHaveText('Обычный');
+  await page.locator('[data-testid~=pause-button]').click();
+  await expect(page.locator('[data-control=tap]')).toBeVisible();
   await button(page, 'Отменить').click(); await menuAction(page, 'Правила');
   await page.keyboard.press('Escape'); await button(page, 'Повторить').click();
   await expect(moveCount(page)).toHaveText('1');
   await menuAction(page, 'Начать заново');
   await expect(page.getByRole('timer')).toHaveText('00:00');
   await expect(moveCount(page)).toHaveText('0');
-  await expect(page.locator('.control-tap')).toBeVisible();
+  await expect(page.locator('[data-control=tap]')).toBeVisible();
 });
 
 test('pointer gestures and touch taps survive rotation and opening the menu', async ({ page, browserName }) => {
@@ -147,11 +147,11 @@ test('pointer gestures and touch taps survive rotation and opening the menu', as
   await expect(moveCount(page)).toHaveText('1');
   await down(1); await move(2);
   await page.setViewportSize({ width: 844, height: 390 });
-  await expect(page.locator('.drag-ghost')).toHaveCount(0); await page.mouse.up();
+  await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0); await page.mouse.up();
   await expect(moveCount(page)).toHaveText('1'); await assertFits(page);
   await down(1); await move(2);
   await button(page, 'Меню').focus(); await page.keyboard.press('Enter'); await page.mouse.up();
-  await expect(page.locator('.drag-ghost')).toHaveCount(0);
+  await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
   await page.keyboard.press('Escape'); await expect(moveCount(page)).toHaveText('1');
   await rod(page, 1).tap(); await rod(page, 2).tap(); await expect(moveCount(page)).toHaveText('2');
   await menuAction(page, 'Настройки'); await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
@@ -171,7 +171,7 @@ test('victory, long timer and move count fit without obscuring the board', async
   await page.clock.fastForward(360_000_000);
   await expect(page.getByRole('timer')).toContainText('100:00:');
   // Text stress fixture only: history semantics are covered by the reducer tests.
-  await page.locator('.move-value').evaluate(el => { el.textContent = '59048'; });
+  await page.locator('[data-testid=move-value]').evaluate(el => { el.textContent = '59048'; });
   await assertFits(page);
   for (const [from, to] of [[1, 3], [1, 2], [3, 2], [1, 3], [2, 1], [2, 3], [1, 3]]) { await rod(page, from).tap(); await rod(page, to).tap(); }
   await expect(page.getByRole('status')).toContainText('Пирамидка собрана!');

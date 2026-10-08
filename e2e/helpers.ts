@@ -6,7 +6,7 @@ export async function menuAction(page: Page, name: string) {
   await button(page, name).click();
 }
 export async function expectStep(page: Page, cursor: number, total: number) {
-  await expect(page.locator('.move-value')).toHaveText(String(cursor));
-  const history = page.locator('.history-position');
+  await expect(page.locator('[data-testid=move-value]')).toHaveText(String(cursor));
+  const history = page.locator('[data-testid~=history-position]');
   if (await history.count()) await expect(history).toHaveText(`Шаг ${cursor} из ${total}`);
 }

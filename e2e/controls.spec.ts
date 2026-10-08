@@ -48,11 +48,11 @@ test('control dialog defaults, cancellation, timer and manual pause', async ({ p
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('radio', { name: 'Перетаскивание', exact: true })).toBeChecked();
   await expect(page.getByRole('radio', { name: 'Свайпы', exact: true })).toHaveCount(0);
-  await expect(page.locator('.rod')).toHaveCount(0);
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
   await page.clock.fastForward(60_000);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('slider')).toHaveValue('7');
-  if (await page.locator('.compact-app').count()) await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
+  if (await page.locator('[data-compact=true]').count()) await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
   else await expect(button(page, 'Начать игру')).toBeFocused();
   await button(page, 'Начать игру').click();
   await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
@@ -61,15 +61,15 @@ test('control dialog defaults, cancellation, timer and manual pause', async ({ p
   await page.keyboard.press('1'); await page.keyboard.press('3');
   await page.clock.runFor(1500);
   await menuAction(page, 'Управление');
-  await expect(page.locator('.rod')).toHaveCount(0);
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
   await expect(page.getByRole('radio', { name: 'Нажатия', exact: true })).toBeChecked();
   await page.getByRole('radio', { name: 'Перетаскивание', exact: true }).check();
   await page.clock.fastForward(60_000);
   await page.keyboard.press('1'); await page.keyboard.press('2');
   await expectStep(page, 1, 1);
   await page.keyboard.press('Escape');
-  await expect(button(page, await page.locator('.compact-app').count() ? 'Меню' : 'Управление')).toBeFocused();
-  await expect(page.locator('.board-shell.control-tap')).toHaveCount(1);
+  await expect(button(page, await page.locator('[data-compact=true]').count() ? 'Меню' : 'Управление')).toBeFocused();
+  await expect(page.locator('[data-testid~=board-shell][data-control=tap]')).toHaveCount(1);
   await page.clock.runFor(500);
   await expect(page.getByRole('timer')).toHaveText('00:02');
   await button(page, 'Пауза').click();
@@ -79,19 +79,19 @@ test('control dialog defaults, cancellation, timer and manual pause', async ({ p
   await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
   await page.clock.runFor(1000);
   await expect(page.getByRole('timer')).toHaveText('00:02');
-  await page.locator('.pause-button').click();
-  await expect(page.locator('.control-drag')).toHaveCount(1);
+  await page.locator('[data-testid~=pause-button]').click();
+  await expect(page.locator('[data-control=drag]')).toHaveCount(1);
   await expectStep(page, 1, 1);
   await menuAction(page, 'Начать заново');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('.control-drag')).toHaveCount(1);
+  await expect(page.locator('[data-control=drag]')).toHaveCount(1);
   await menuAction(page, 'Настройки');
   await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
   await button(page, 'Начать игру').click();
   await expect(page.getByRole('radio', { name: 'Свайпы', exact: true })).toBeChecked();
   await page.keyboard.press('Escape');
   await button(page, 'Назад к игре').click();
-  await expect(page.locator('.mode-badge')).toContainText('Обычный');
+  await expect(page.locator('[data-testid~=mode-badge]')).toContainText('Обычный');
 });
 
 test('drag moves exactly once; invalid and outside drops preserve history; taps still work', async ({ page, isMobile }) => {
@@ -101,19 +101,19 @@ test('drag moves exactly once; invalid and outside drops preserve history; taps 
     await rod(page, 2).click(); // Empty source must not start a drag.
     await input.down(await center(page, 1));
     await input.move(await center(page, 3));
-    await expect(page.locator('.drag-ghost')).toHaveCount(1);
-    await expect(rod(page, 3)).toHaveClass(/rod-drop-target/);
-    await expect(rod(page, 1).locator('.disk-in-transit')).toHaveCount(1);
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(1);
+    await expect(rod(page, 3)).toHaveAttribute('data-drop-target', 'true');
+    await expect(rod(page, 1).locator('[data-in-transit=true]')).toHaveCount(1);
     await input.up();
     await expectStep(page, 1, 1);
-    await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
-    await expect(page.locator('.drag-ghost')).toHaveCount(0);
+    await expect(page.locator('button[data-testid~=rod][aria-pressed="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
     await input.down(await center(page, 1)); await input.move(await center(page, 3)); await input.up();
     await expect(page.getByRole('status')).toContainText('Большой диск');
     await expectStep(page, 1, 1);
     await input.down(await center(page, 1)); await input.move({ x: 2, y: 2 }); await input.up();
     await expectStep(page, 1, 1);
-    await expect(page.locator('.drag-ghost')).toHaveCount(0);
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
     await rod(page, 1).click(); await rod(page, 2).click();
     await expectStep(page, 2, 2);
     await button(page, 'Отменить').click();
@@ -123,7 +123,7 @@ test('drag moves exactly once; invalid and outside drops preserve history; taps 
     await expect(button(page, 'Повторить')).toBeDisabled();
     await expectStep(page, 2, 2);
     expect(await page.evaluate(() => window.getSelection()?.toString())).toBe('');
-    expect(await page.locator('.board-shell').evaluate(el => getComputedStyle(el).userSelect)).toBe('none');
+    expect(await page.locator('[data-testid~=board-shell]').evaluate(el => getComputedStyle(el).userSelect)).toBe('none');
   } finally { await input.dispose(); }
 });
 
@@ -135,7 +135,7 @@ test('swipes move only to neighbours in both directions and do not become clicks
     await input.down(from); await input.move({ x: from.x + 100, y: from.y }); await input.up();
     await expect(rod(page, 2)).toHaveAccessibleName(/Верхний диск: 1/);
     await expectStep(page, 1, 1);
-    await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
+    await expect(page.locator('button[data-testid~=rod][aria-pressed="true"]')).toHaveCount(0);
     from = await center(page, 2);
     await input.down(from); await input.move({ x: from.x - 40, y: from.y }); await input.up();
     await expect(rod(page, 1)).toHaveAccessibleName(/Верхний диск: 1/);
@@ -170,17 +170,17 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
     await input.cancel(); if (!isMobile) await input.up();
     await expectStep(page, 0, 0);
-    await expect(page.locator('.drag-ghost')).toHaveCount(0);
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
     if (isMobile) {
       await input.down(await center(page, 1)); await input.move(await center(page, 2));
       await input.second(await center(page, 2)); await input.up();
       await expectStep(page, 0, 0);
-      await expect(page.locator('.drag-ghost')).toHaveCount(0);
+      await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
     }
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
     const viewport = page.viewportSize()!;
     await page.setViewportSize({ ...viewport, width: viewport.width - 10 });
-    await expect(page.locator('.drag-ghost')).toHaveCount(0);
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
     await input.up();
     await expectStep(page, 0, 0);
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
@@ -191,15 +191,15 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
     await button(page, 'Пауза').focus(); await page.keyboard.press('Enter'); await input.up();
     await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
-    await expect(page.locator('.drag-ghost')).toHaveCount(0);
-    await page.locator('.pause-button').click();
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
+    await page.locator('[data-testid~=pause-button]').click();
     await expectStep(page, 0, 0);
     await input.down(await center(page, 1)); await input.move(await center(page, 2));
-    const compact = !!(await page.locator('.compact-app').count());
+    const compact = !!(await page.locator('[data-compact=true]').count());
     await button(page, compact ? 'Меню' : 'Управление').focus(); await page.keyboard.press('Enter'); await input.up();
     if (compact) await button(page, 'Управление').click();
     await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.locator('.drag-ghost')).toHaveCount(0);
+    await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
     await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
     await button(page, 'Применить').click();
     await expectStep(page, 0, 0);
@@ -213,7 +213,7 @@ test('numeric keys respect selection, mode, pause, form inputs and key repeats',
   await page.keyboard.press('2');
   await expectStep(page, 1, 1);
   await page.keyboard.press('6');
-  await expect(page.locator('button.rod[aria-pressed="true"]')).toHaveCount(0);
+  await expect(page.locator('button[data-testid~=rod][aria-pressed="true"]')).toHaveCount(0);
   await page.keyboard.down('1'); await page.keyboard.down('1'); await page.keyboard.up('1');
   await expect(rod(page, 1)).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
@@ -238,10 +238,10 @@ test('dialog keeps focus inside and supports reduced motion', async ({ page }, t
     await page.keyboard.press('Tab');
     expect(await page.evaluate(() => !!document.activeElement?.closest('dialog'))).toBe(true);
   }
-  expect(await page.locator('.demo-moving-disk').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+  expect(await page.locator('[data-testid~=demo-moving-disk]').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await page.screenshot({ path: testInfo.outputPath('controls-dialog.png'), fullPage: true });
   await page.keyboard.press('Escape');
-  if (await page.locator('.compact-app').count()) await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
+  if (await page.locator('[data-compact=true]').count()) await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
   else await expect(button(page, 'Начать игру')).toBeFocused();
 });
 
@@ -253,11 +253,11 @@ for (const width of [768, 1440]) {
     await page.goto('/');
     async function assertFits() {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-      const metrics = await page.locator('.board-shell').evaluate(el => {
+      const metrics = await page.locator('[data-testid~=board-shell]').evaluate(el => {
         const rect = el.getBoundingClientRect();
         return {
           scroll: el.scrollWidth <= el.clientWidth + 1,
-          fits: [...el.querySelectorAll('.rod, .disk')].every(cell => {
+          fits: [...el.querySelectorAll('[data-testid~=rod], [data-testid~=disk]')].every(cell => {
             const r = cell.getBoundingClientRect();
             return r.width > 0 && r.left >= rect.left && r.right <= rect.right;
           }),
@@ -271,7 +271,7 @@ for (const width of [768, 1440]) {
         await page.getByRole('slider').fill(String(disks));
         await assertFits();
         await button(page, 'Начать игру').click(); await button(page, 'Играть').click();
-        await expect(page.locator('button.rod')).toHaveCount(rods);
+        await expect(page.locator('button[data-testid~=rod]')).toHaveCount(rods);
         await assertFits();
         if (rods === 6 && disks === 10) await page.screenshot({ path: testInfo.outputPath('six-rods.png'), fullPage: true });
         await menuAction(page, 'Настройки');

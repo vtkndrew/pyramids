@@ -1,0 +1,32 @@
+.saved-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.saved-game {
+  padding: 16px;
+  border: 1px solid #e0e5da;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.saved-game-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.saved-game time {
+  font-size: 11px;
+  color: #798571;
+}
+.saved-game .action {
+  margin-top: 10px;
+  width: 100%;
+}
+.saved-games {
+  display: grid;
+  gap: 16px;
+}

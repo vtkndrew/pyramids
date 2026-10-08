@@ -1,0 +1,39 @@
+{
+  "head": {
+    "version": 1,
+    "id": "9e4f957d-30dd-413c-9969-8002b22c9d77",
+    "revision": 5,
+    "order": 1,
+    "startedAt": 1791466649008,
+    "config": {
+      "rods": 3,
+      "disks": 5,
+      "mode": "classic"
+    },
+    "control": "tap",
+    "elapsed": 215.09999990463257,
+    "cursor": 1,
+    "length": 3,
+    "paused": false
+  },
+  "boards": [
+    [[5, 4, 3, 2, 1], [], []],
+    [[5, 4, 3, 2], [], [1]],
+    [[5, 4, 3], [2], [1]]
+  ],
+  "summaries": [
+    {
+      "id": "9e4f957d-30dd-413c-9969-8002b22c9d77",
+      "order": 1,
+      "startedAt": 1791466649008,
+      "config": {
+        "rods": 3,
+        "disks": 5,
+        "mode": "classic"
+      },
+      "elapsed": 215.09999990463257,
+      "moves": 1,
+      "status": "active"
+    }
+  ]
+}

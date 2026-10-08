@@ -1,0 +1,56 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #e0e5da;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 43px;
+  padding: 11px 17px;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.button:hover:not(:disabled) {
+  background: #f0f3e9;
+  border-color: #bdc9b5;
+}
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.button:disabled {
+  opacity: 0.38;
+}
+.button-primary {
+  background: #284d3d;
+  color: white;
+  border-color: #284d3d;
+}
+.button-primary:hover:not(:disabled) {
+  background: #38634b;
+  border-color: #38634b;
+}
+.start-button {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 13px 17px;
+}
+.back-button {
+  width: 100%;
+  border: 0;
+  margin-top: 8px;
+  background: transparent;
+}
+.start-button {
+  justify-content: var(--action-justify, space-between);
+  min-height: var(--action-height, 48px);
+  padding: var(--action-padding, 13px 17px);
+}
+.back-button {
+  margin-top: var(--back-margin, 8px);
+  min-height: var(--back-height, 43px);
+}

@@ -32,9 +32,21 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Check dependency registry
+        run: npm run check:lockfile
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check architecture
+        run: npm run lint:architecture
 
       - name: Test
         run: npm test
