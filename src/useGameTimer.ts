@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function formatElapsed(milliseconds: number): string {
   const seconds = Math.floor(milliseconds / 1000);
@@ -9,31 +9,21 @@ export function formatElapsed(milliseconds: number): string {
   return parts.join(':');
 }
 
-export function useGameTimer(running: boolean, session: number): number {
+export function useGameTimer() {
   const [elapsed, setElapsed] = useState(0);
-  const accumulated = useRef(0);
-  const previousSession = useRef(session);
-
+  const clock = useRef({ accumulated: 0, started: null as number | null });
+  const read = useCallback(() => clock.current.accumulated + (clock.current.started === null ? 0 : performance.now() - clock.current.started), []);
+  const setRunning = useCallback((running: boolean) => {
+    const value = read();
+    clock.current = { accumulated: value, started: running ? performance.now() : null };
+    setElapsed(value);
+  }, [read]);
+  const restore = useCallback((value: number) => {
+    clock.current = { accumulated: value, started: null }; setElapsed(value);
+  }, []);
   useEffect(() => {
-    if (previousSession.current !== session) {
-      previousSession.current = session;
-      accumulated.current = 0;
-      setElapsed(0);
-    }
-    if (!running) return;
-
-    // Measure actual elapsed time: throttled background intervals must not lose seconds.
-    const startedAt = performance.now();
-    const interval = window.setInterval(() => {
-      setElapsed(accumulated.current + performance.now() - startedAt);
-    }, 250);
-
-    return () => {
-      window.clearInterval(interval);
-      accumulated.current += performance.now() - startedAt;
-      setElapsed(accumulated.current);
-    };
-  }, [running, session]);
-
-  return elapsed;
+    const interval = window.setInterval(() => { if (clock.current.started !== null) setElapsed(read()); }, 250);
+    return () => window.clearInterval(interval);
+  }, [read]);
+  return { elapsed, read, setRunning, restore };
 }

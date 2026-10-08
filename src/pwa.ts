@@ -85,7 +85,18 @@ export function initPwa() {
   if (!import.meta.env.PROD) return;
   if (!('serviceWorker' in navigator) || !window.isSecureContext) { patch({ offline: 'unavailable' }); return; }
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloadRequested) { window.clearTimeout(updateTimeout); location.reload(); }
+    if (reloadRequested) {
+      const controller = navigator.serviceWorker.controller;
+      const reloadWhenActivated = () => {
+        if (!reloadRequested || controller?.state !== 'activated') return;
+        controller.removeEventListener('statechange', reloadWhenActivated);
+        reloadRequested = false; window.clearTimeout(updateTimeout); location.reload();
+      };
+      // controllerchange can fire during activation. Reloading at that point
+      // may interrupt cache cleanup in WebKit; wait for activation to finish.
+      controller?.addEventListener('statechange', reloadWhenActivated);
+      reloadWhenActivated();
+    }
     else {
       // Another tab can activate an update. Never reload an ongoing game here.
       patch({ needRefresh: !!registration?.waiting });
@@ -109,6 +120,7 @@ export function initPwa() {
     };
     reg.addEventListener('updatefound', () => watch(reg.installing));
     watch(reg.installing);
+    watch(reg.active); // A reload can attach while the new worker is still activating.
     void checkOfflineCache();
     document.addEventListener('visibilitychange', () => { void checkForUpdate(); });
     window.addEventListener('online', () => { void checkForUpdate(); });

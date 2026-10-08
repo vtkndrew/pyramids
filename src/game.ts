@@ -10,6 +10,7 @@ export type Game = Readonly<{
   paused: boolean;
 }>;
 export type Action =
+  | { type: 'restore'; game: Game }
   | { type: 'select'; rod: number }
   | { type: 'move'; from: number; to: number }
   | { type: 'clearSelection' }
@@ -60,6 +61,7 @@ export function moveError(board: Board, from: number, to: number, mode: GameMode
 export function gameReducer(game: Game, action: Action): Game {
   if (game.paused && (action.type === 'select' || action.type === 'move' || action.type === 'undo' || action.type === 'redo')) return game;
   switch (action.type) {
+    case 'restore': return { ...action.game, selected: null, error: null, paused: !isWon(action.game) };
     case 'clearSelection': return { ...game, selected: null, error: null };
     case 'move': return isWon(game) ? game : applyMove(game, action.from, action.to);
     case 'start': return createGame(action.config);

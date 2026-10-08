@@ -141,3 +141,9 @@ body.modal-open{overflow:hidden}
 .pwa-actions{display:flex;gap:8px;flex-wrap:wrap}.pwa-actions .button{flex:1;min-height:44px}.pwa-actions .button-primary{flex-basis:100%;white-space:normal}
 .update-entry{color:#45683b;background:#f1f5e9}.menu-button{position:relative}.update-dot{width:7px;height:7px;border-radius:50%;background:#b27745;flex-shrink:0}.menu-button .update-dot{position:absolute;top:6px;right:6px}
 @media(max-height:500px){.pwa-brand img{width:44px;height:44px}.pwa-body{gap:12px}.pwa-actions .button-primary{flex-basis:auto}}
+
+.history-entry{width:100%;margin-top:18px}.history-entry+.pwa-entry{margin-top:10px}
+.saved-list{list-style:none;padding:0;margin:0;display:grid;gap:12px}.saved-game{padding:16px;border:1px solid #e0e5da;border-radius:12px;font-size:12px;line-height:1.7}.saved-game-heading{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.saved-game time{font-size:11px;color:#798571}.saved-game .button{margin-top:10px;width:100%}.saved-games{display:grid;gap:16px}
+.welcome-body{display:grid;gap:16px;font-size:13px}.welcome-actions{display:flex;gap:10px;flex-wrap:wrap}.welcome-actions .button{flex:1;min-height:44px}
+.save-loading{display:grid;place-items:center;min-height:200px}.save-notice{display:flex;gap:8px;align-items:center;font-size:12px;min-width:0;padding:8px;color:#945234}.save-notice .button{flex-shrink:0;font-size:11px;min-height:44px}.save-notice span{min-width:0}.game-meta{flex-wrap:wrap;justify-content:flex-end}
+.compact-app .game-message .save-notice{padding:0;width:100%;font-size:10px;line-height:1.2}.compact-app .game-message .save-notice span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.compact-app .game-message .save-notice .button{padding:4px;min-height:32px;font-size:10px}.compact-app .game-message:has(.save-notice)>svg{display:none}

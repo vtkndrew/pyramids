@@ -1,17 +1,27 @@
+import { useState } from 'react';
 import { applyUpdate, installApp, isIOS, usePwa } from './pwa';
 
-export default function PwaPanel({ confirmUpdate, onConfirmUpdate, onBack }: {
-  confirmUpdate: boolean; onConfirmUpdate: () => void; onBack: () => void;
+export default function PwaPanel({ confirmUpdate, onConfirmUpdate, onBack, beforeUpdate }: {
+  beforeUpdate: () => Promise<void>; confirmUpdate: boolean; onConfirmUpdate: () => void; onBack: () => void;
 }) {
   const pwa = usePwa();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  async function update() {
+    setSaving(true); setSaveError(false);
+    try { await beforeUpdate(); applyUpdate(); }
+    catch { setSaveError(true); }
+    finally { setSaving(false); }
+  }
   if (confirmUpdate) return <>
     <div className="dialog-body pwa-body">
-      <p>Игра перезапустится, текущая партия будет сброшена.</p>
+      <p>Игра сохранится и перезапустится. После обновления можно продолжить последнюю партию.</p>
+      {saveError && <p role="alert">Не удалось сохранить партию. Обновление отложено; повторите сохранение.</p>}
       {pwa.updateError && <p role="alert">{pwa.updateError}</p>}
     </div>
     <div className="dialog-footer pwa-actions">
-      <button type="button" className="button button-primary" disabled={pwa.updateBusy} onClick={applyUpdate}>{pwa.updateBusy ? 'Обновляем…' : 'Обновить и перезапустить'}</button>
-      <button type="button" className="button" disabled={pwa.updateBusy} onClick={onBack}>Позже</button>
+      <button type="button" className="button button-primary" disabled={pwa.updateBusy || saving} onClick={() => { void update(); }}>{saving ? 'Сохраняем…' : pwa.updateBusy ? 'Обновляем…' : 'Обновить и перезапустить'}</button>
+      <button type="button" className="button" disabled={pwa.updateBusy || saving} onClick={onBack}>Позже</button>
     </div>
   </>;
   return <>
@@ -28,7 +38,7 @@ export default function PwaPanel({ confirmUpdate, onConfirmUpdate, onBack }: {
       <section className="pwa-status" aria-label="Работа без интернета">
         <h3>Без интернета</h3>
         <p role="status">{pwa.offline === 'ready' ? 'Готово к работе без интернета.' : pwa.offline === 'preparing' ? 'Подготавливаем игру для работы без интернета…' : pwa.offline === 'development' ? 'Офлайн-режим доступен в опубликованной версии игры.' : 'Офлайн-режим пока недоступен. Онлайн-игра продолжает работать.'}</p>
-        <p>После полного закрытия или перезагрузки начинается новая партия. Прогресс не сохраняется.</p>
+        <p>Последняя партия и история игр сохраняются на этом устройстве, в том числе без интернета. После закрытия можно продолжить последнюю партию. Очистка данных сайта удалит сохранения; Safari и приложение с главного экрана могут хранить их отдельно.</p>
       </section>
       {pwa.needRefresh && <section className="pwa-status"><h3>Доступна новая версия</h3><p>Обновите приложение, когда закончите партию.</p><button type="button" className="button" onClick={onConfirmUpdate}>Обновить</button></section>}
     </div>

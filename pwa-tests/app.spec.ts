@@ -8,7 +8,14 @@ async function appPanel(page: Page) {
 }
 async function ready(page: Page) {
   await appPanel(page);
-  await expect(page.getByText('Готово к работе без интернета.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  try { await expect(page.getByText('Готово к работе без интернета.', { exact: true })).toBeVisible({ timeout: 15_000 }); }
+  catch (error) {
+    console.log(await page.evaluate(async () => {
+      const reg = await navigator.serviceWorker.getRegistration();
+      return { active: reg?.active?.state, installing: reg?.installing?.state, waiting: reg?.waiting?.state, controller: navigator.serviceWorker.controller?.state, caches: await caches.keys() };
+    }));
+    throw error;
+  }
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 }
 async function start(page: Page) {
@@ -55,8 +62,12 @@ test('cached app cold-starts offline and keeps all game actions usable', async (
   const next = await context.newPage();
   const response = await next.goto('/pyramids/');
   expect(response?.fromServiceWorker()).toBe(true);
-  await expect(next.getByRole('slider')).toHaveValue('5');
-  await ready(next); await button(next, 'Назад').click();
+  await button(next, 'Продолжить партию').click();
+  await expect(next.locator('.move-value')).toHaveText('1');
+  await button(next, 'Отменить').click(); await button(next, 'Повторить').click();
+  await button(next, 'Меню').click(); await button(next, 'История игр').click();
+  await expect(next.locator('.saved-game')).toHaveCount(1);
+  await button(next, 'Назад').click(); await button(next, 'Настройки').click();
   await next.getByRole('radio', { name: 'Хардкор', exact: true }).check();
   await start(next);
   await expect(next.locator('.move-value')).toHaveText('0');
@@ -72,7 +83,8 @@ test('cached app cold-starts offline and keeps all game actions usable', async (
   expect(await next.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   // App-shell navigation fallback stays inside the repository scope.
   expect((await next.goto('/pyramids/offline-route'))?.fromServiceWorker()).toBe(true);
-  await expect(button(next, 'Начать игру')).toBeVisible();
+  await expect(button(next, 'Продолжить партию')).toBeVisible();
+  await button(next, 'История игр').click(); await expect(next.locator('.saved-game')).toHaveCount(2);
 });
 
 test('install request is user-triggered, consumed once, and handles acceptance and cancellation', async ({ page }) => {
@@ -158,14 +170,21 @@ test('failed worker registration does not prevent online play', async ({ page })
 });
 
 test('new build waits for consent; deferral preserves game; activation cleans only its cache', async ({ page, context }) => {
+  await page.addInitScript(() => {
+    const original = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore['put']>) {
+      if (document.documentElement.dataset.rejectSave === 'yes') throw new DOMException('Disk full', 'QuotaExceededError');
+      return original.apply(this, args);
+    };
+  });
   await page.goto('/pyramids/'); await ready(page);
   const oldScript = await page.locator('script[type="module"]').getAttribute('src');
   await page.evaluate(async () => { const other = await caches.open('other-project'); await other.put('/other-resource', new Response('keep me')); });
   await button(page, 'Назад').click(); await start(page);
   await rod(page, 1).tap(); await rod(page, 3).tap();
   const otherTab = await context.newPage();
-  await otherTab.goto('/pyramids/'); await start(otherTab);
-  await rod(otherTab, 1).tap(); await rod(otherTab, 2).tap();
+  await otherTab.goto('/pyramids/');
+  await expect(button(otherTab, 'Продолжить партию')).toBeVisible();
   await deployment(context, 'two');
   await page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())!.update(); });
   await expect.poll(() => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())?.waiting)).toBe(true);
@@ -174,17 +193,25 @@ test('new build waits for consent; deferral preserves game; activation cleans on
   await button(page, 'Меню').click();
   await expect(button(page, 'Доступна новая версия')).toBeVisible();
   await appPanel(page); await button(page, 'Обновить').click();
-  await expect(page.getByText('Игра перезапустится, текущая партия будет сброшена.')).toBeVisible();
+  await expect(page.getByText('Игра сохранится и перезапустится. После обновления можно продолжить последнюю партию.')).toBeVisible();
   await button(page, 'Позже').click(); await page.keyboard.press('Escape');
   await expect(page.locator('.move-value')).toHaveText('1');
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
   await appPanel(page); await button(page, 'Обновить').click();
+  await page.evaluate(() => { document.documentElement.dataset.rejectSave = 'yes'; });
+  await button(page, 'Обновить и перезапустить').click();
+  await expect(page.getByText('Не удалось сохранить партию. Обновление отложено; повторите сохранение.')).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
+  await expect(page.locator('.move-value')).toHaveText('1');
+  await page.evaluate(() => { delete document.documentElement.dataset.rejectSave; });
   await button(page, 'Обновить и перезапустить').click();
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'two', { timeout: 15_000 });
-  await expect(button(page, 'Начать игру')).toBeVisible();
+  await expect(button(page, 'Продолжить партию')).toBeVisible();
+  await button(page, 'Продолжить партию').click();
+  await expect(page.locator('.move-value')).toHaveText('1');
   expect(await page.locator('script[type="module"]').getAttribute('src')).not.toBe(oldScript);
   await expect(otherTab.locator('html')).toHaveAttribute('data-pwa-test-build', 'one');
-  await expect(otherTab.locator('.move-value')).toHaveText('1');
+  await expect(button(otherTab, 'Продолжить партию')).toBeVisible();
   await otherTab.close();
   await ready(page);
   expect(await page.evaluate(async oldScript => {

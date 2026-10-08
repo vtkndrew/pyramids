@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './pwa-tests',
+  outputDir: './test-results-pwa',
   fullyParallel: true,
   use: { baseURL: 'http://127.0.0.1:4175', trace: 'retain-on-failure', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
   projects: [

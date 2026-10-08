@@ -91,6 +91,7 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
     await page.keyboard.press('Tab'); // Pause
     await page.keyboard.press('Tab'); // Controls
     await page.keyboard.press('Tab'); // Settings
+    await page.keyboard.press('Tab'); // Game history
     await page.keyboard.press('Tab'); // Application
   } else {
     await page.getByRole('region', { name: 'Игровое поле' }).focus();
