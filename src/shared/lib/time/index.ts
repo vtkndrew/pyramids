@@ -1,1 +1,1 @@
-export { useElapsedTimer, formatElapsed } from "./useElapsedTimer";
+export { useElapsedTimer, formatElapsed } from './useElapsedTimer';

@@ -1,1 +1,1 @@
-export { useCompactLayout } from "./useCompactLayout";
+export { useCompactLayout } from './useCompactLayout';

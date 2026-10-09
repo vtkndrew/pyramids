@@ -1,1 +1,1 @@
-export { default as GameHistory } from "./ui/GameHistory";
+export { default as GameHistory } from './ui/GameHistory';

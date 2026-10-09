@@ -376,10 +376,7 @@ button.rod:hover:not(:disabled) .rod-number {
   --fit-gap: min(3px, 1.4cqh);
   --fit-disk-height: min(
     clamp(12px, 12cqw, 23px),
-    calc(
-      (100cqh - 26px - (var(--disk-count) - 1) * var(--fit-gap)) /
-        var(--disk-count)
-    )
+    calc((100cqh - 26px - (var(--disk-count) - 1) * var(--fit-gap)) / var(--disk-count))
   );
   gap: var(--fit-gap);
 }

@@ -1,5 +1,6 @@
-import { usePwaPanel } from "../model/usePwaPanel";
-import { PwaView } from "./PwaView";
+import { PwaView } from './PwaView';
+import { usePwaPanel } from '../model/usePwaPanel';
+
 export default function PwaPanel({
   beforeUpdate,
   ...props
@@ -10,5 +11,6 @@ export default function PwaPanel({
   onBack: () => void;
 }) {
   const model = usePwaPanel(beforeUpdate);
+
   return <PwaView {...model} {...props} />;
 }

@@ -1,23 +1,21 @@
-import { currentBoard } from "@/entities/game";
-import { InteractiveBoard } from "@/features/play-game";
-import { bindClasses } from "@/shared/lib/styles";
-import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
-import type { ReactNode } from "react";
-import type { GamePageModel } from "../model/useGamePage";
-import { PANEL_TITLES } from "../model/useGamePage";
-import styles from "./GamePage.module.css";
+import { useCallback, type ComponentProps, type ReactNode } from 'react';
+
+import { currentBoard } from '@/entities/game';
+import { InteractiveBoard } from '@/features/play-game';
+import { bindClasses } from '@/shared/lib/styles';
+import { Button } from '@/shared/ui/button';
+import { Icon } from '@/shared/ui/icon';
+
+import styles from './GamePage.module.css';
+import { type GamePageModel, PANEL_TITLES } from '../model/useGamePage';
+
 const css = bindClasses(styles);
+
 function countLabel(count: number, few: string, many: string) {
   return `${count} ${count < 5 ? few : many}`;
 }
-export function GamePanel({
-  model,
-  saveNotice,
-}: {
-  model: GamePageModel;
-  saveNotice: ReactNode;
-}) {
+
+export function GamePanel({ model, saveNotice }: { model: GamePageModel; saveNotice: ReactNode }) {
   const {
     compact,
     pwa,
@@ -49,58 +47,178 @@ export function GamePanel({
       disabled={won}
       aria-pressed={game.paused}
       onClick={togglePause}
-      className={css(" pause-button", "action")}
+      className={css(' pause-button', 'action')}
       data-testid="pause-button"
     >
-      <Icon name={game.paused ? "play" : "pause"} />
-      <span>{game.paused ? "Продолжить" : "Пауза"}</span>
+      <Icon name={game.paused ? 'play' : 'pause'} />
+      <span>{game.paused ? 'Продолжить' : 'Пауза'}</span>
     </Button>
   );
+
+  const openControls = useCallback(() => openPanel('controls'), [openPanel]);
+
+  const openSettings = useCallback(() => openPanel('settings'), [openPanel]);
+
+  const handleApplication = useCallback<NonNullable<ComponentProps<typeof Button>['onClick']>>(
+    (event) => {
+      event.currentTarget.focus();
+      openApplication();
+    },
+    [openApplication],
+  );
+
+  const clearSelection = useCallback(() => dispatch({ type: 'clearSelection' }), [dispatch]);
+
+  const moveDisk = useCallback<NonNullable<ComponentProps<typeof InteractiveBoard>['onMove']>>(
+    (from, to) => dispatch({ type: 'move', from, to }),
+    [dispatch],
+  );
+
+  const selectRod = useCallback<NonNullable<ComponentProps<typeof InteractiveBoard>['onRod']>>(
+    (rod) => dispatch({ type: 'select', rod }),
+    [dispatch],
+  );
+
+  const undoMove = useCallback(() => dispatch({ type: 'undo' }), [dispatch]);
+
+  const redoMove = useCallback(() => dispatch({ type: 'redo' }), [dispatch]);
+
+  const openMenu = useCallback<NonNullable<ComponentProps<typeof Button>['onClick']>>(
+    (event) => {
+      event.currentTarget.focus();
+      openPanel('menu');
+    },
+    [openPanel],
+  );
+
+  const restartGame = useCallback(() => startGame(game.config), [game.config, startGame]);
+
+  function renderSaveNotice() {
+    if (saved.error) {
+      if (compact) {
+        return <span>Прогресс не сохраняется. Откройте меню.</span>;
+      }
+
+      return saveNotice;
+    }
+
+    return null;
+  }
+
+  function getMessageIcon(): ComponentProps<typeof Icon>['name'] {
+    if (won) {
+      return 'check';
+    }
+
+    if (game.error) {
+      return 'info';
+    }
+
+    return 'spark';
+  }
+
+  function renderField() {
+    if (panel) {
+      return (
+        <div className={css('pause-panel')} data-testid="pause-panel">
+          <h3>{PANEL_TITLES[panel]}</h3>
+          <p>Время остановлено.</p>
+        </div>
+      );
+    }
+
+    if (game.paused) {
+      return (
+        <section
+          aria-labelledby="pause-title"
+          className={css('pause-panel')}
+          data-testid="pause-panel"
+        >
+          <span className={css('pause-mark')}>
+            <Icon name="pause" />
+          </span>
+          <h3 id="pause-title">Игра на паузе</h3>
+          <p>
+            Пирамидка подождёт.
+            <br />
+            Продолжите, когда будете готовы.
+          </p>
+          <Button
+            type="button"
+            onClick={togglePause}
+            variant="primary"
+            className={css('', 'action', 'primary-action')}
+          >
+            <Icon name="play" />
+            Продолжить
+          </Button>
+        </section>
+      );
+    }
+
+    return (
+      <InteractiveBoard
+        fitHeight={compact}
+        board={currentBoard(game)}
+        config={game.config}
+        selected={game.selected}
+        won={won}
+        control={control}
+        onClear={clearSelection}
+        onMove={moveDisk}
+        onRod={selectRod}
+      />
+    );
+  }
+
+  function getModeLabel() {
+    if (game.config.mode === 'hardcore') {
+      if (compact) {
+        return 'Хардкор';
+      }
+
+      return 'Хардкор · Только соседи';
+    }
+
+    if (compact) {
+      return 'Обычный';
+    }
+
+    return 'Обычный режим';
+  }
+
   return (
-    <section
-      aria-labelledby="game-title"
-      className={css(`game-card ${won ? "game-won" : ""}`)}
-    >
-      <div className={css("game-heading")} data-testid="game-heading">
-        <div className={css("game-title-block")}>
+    <section aria-labelledby="game-title" className={css(`game-card ${won ? 'game-won' : ''}`)}>
+      <div className={css('game-heading')} data-testid="game-heading">
+        <div className={css('game-title-block')}>
           {!compact && (
-            <div className={css("eyebrow")}>
-              {won ? "Отличная работа" : "Ваша партия"}
-            </div>
+            <div className={css('eyebrow')}>{won ? 'Отличная работа' : 'Ваша партия'}</div>
           )}
           <h2
             id="game-title"
             tabIndex={-1}
             ref={gameHeading}
-            data-return-focus={!compact ? "" : undefined}
-            className={css(compact ? "visually-hidden" : undefined)}
+            data-return-focus={!compact ? '' : undefined}
+            className={css(compact ? 'visually-hidden' : undefined)}
           >
-            {won ? "Всё получилось!" : "Ход за ходом"}
+            {won ? 'Всё получилось!' : 'Ход за ходом'}
           </h2>
           <span
-            className={css(
-              `mode-badge ${game.config.mode === "hardcore" ? "mode-hardcore" : ""}`,
-            )}
+            className={css(`mode-badge ${game.config.mode === 'hardcore' ? 'mode-hardcore' : ''}`)}
             data-testid="mode-badge"
           >
-            {game.config.mode === "hardcore"
-              ? compact
-                ? "Хардкор"
-                : "Хардкор · Только соседи"
-              : compact
-                ? "Обычный"
-                : "Обычный режим"}
+            {getModeLabel()}
           </span>
         </div>
-        <div className={css("game-meta")}>
+        <div className={css('game-meta')}>
           {!compact && (
-            <span className={css("config-summary")}>
-              {countLabel(game.config.rods, "стержня", "стержней")} ·{" "}
-              {countLabel(game.config.disks, "диска", "дисков")}
+            <span className={css('config-summary')}>
+              {countLabel(game.config.rods, 'стержня', 'стержней')} ·{' '}
+              {countLabel(game.config.disks, 'диска', 'дисков')}
             </span>
           )}
-          <div className={css("timer-controls")}>
-            <div className={css("move-count game-timer")}>
+          <div className={css('timer-controls')}>
+            <div className={css('move-count game-timer')}>
               <strong role="timer" aria-label="Время партии" aria-live="off">
                 {elapsedLabel}
               </strong>
@@ -108,7 +226,7 @@ export function GamePanel({
             </div>
             {!compact && pauseControl}
           </div>
-          <div className={css("move-count")}>
+          <div className={css('move-count')}>
             <strong data-testid="move-value">{game.cursor}</strong>
             <span>Ходов</span>
           </div>
@@ -116,40 +234,31 @@ export function GamePanel({
             <>
               <Button
                 type="button"
-                onClick={() => openPanel("controls")}
-                className={css(" control-button", "action")}
+                onClick={openControls}
+                className={css(' control-button', 'action')}
               >
                 Управление
               </Button>
               <Button
                 type="button"
                 aria-label="Настройки"
-                onClick={() => openPanel("settings")}
-                className={css(" button-settings", "action")}
+                onClick={openSettings}
+                className={css(' button-settings', 'action')}
               >
                 <Icon name="settings" />
                 <span>Настройки</span>
               </Button>
-              <Button
-                type="button"
-                onClick={openHistory}
-                className={css("", "action")}
-              >
+              <Button type="button" onClick={openHistory} className={css('', 'action')}>
                 История игр
               </Button>
               <Button
                 type="button"
                 aria-label={applicationLabel}
-                onClick={(event) => {
-                  event.currentTarget.focus();
-                  openApplication();
-                }}
-                className={css(" pwa-header-button", "action")}
+                onClick={handleApplication}
+                className={css(' pwa-header-button', 'action')}
               >
                 {applicationLabel}
-                {pwa.needRefresh && (
-                  <span aria-hidden="true" className={css("update-dot")} />
-                )}
+                {pwa.needRefresh && <span aria-hidden="true" className={css('update-dot')} />}
               </Button>
             </>
           )}
@@ -157,100 +266,48 @@ export function GamePanel({
       </div>
       <div
         ref={fieldRef}
-        style={
-          !compact && (game.paused || panel)
-            ? { height: pausedFieldHeight }
-            : undefined
-        }
-        className={css("play-area")}
+        style={!compact && (game.paused || panel) ? { height: pausedFieldHeight } : undefined}
+        className={css('play-area')}
         data-testid="play-area"
       >
-        {panel ? (
-          <div className={css("pause-panel")} data-testid="pause-panel">
-            <h3>{PANEL_TITLES[panel]}</h3>
-            <p>Время остановлено.</p>
-          </div>
-        ) : game.paused ? (
-          <section
-            aria-labelledby="pause-title"
-            className={css("pause-panel")}
-            data-testid="pause-panel"
-          >
-            <span className={css("pause-mark")}>
-              <Icon name="pause" />
-            </span>
-            <h3 id="pause-title">Игра на паузе</h3>
-            <p>
-              Пирамидка подождёт.
-              <br />
-              Продолжите, когда будете готовы.
-            </p>
-            <Button
-              type="button"
-              onClick={togglePause}
-              variant="primary"
-              className={css("", "action", "primary-action")}
-            >
-              <Icon name="play" />
-              Продолжить
-            </Button>
-          </section>
-        ) : (
-          <InteractiveBoard
-            fitHeight={compact}
-            board={currentBoard(game)}
-            config={game.config}
-            selected={game.selected}
-            won={won}
-            control={control}
-            onClear={() => dispatch({ type: "clearSelection" })}
-            onMove={(from, to) => dispatch({ type: "move", from, to })}
-            onRod={(rod) => dispatch({ type: "select", rod })}
-          />
-        )}
+        {renderField()}
       </div>
       <div
         role="status"
         aria-live="polite"
         aria-atomic="true"
         className={css(
-          `game-message ${game.error ? "message-error" : ""} ${won ? "message-success" : ""}`,
+          `game-message ${game.error ? 'message-error' : ''} ${won ? 'message-success' : ''}`,
         )}
         data-testid="game-message"
       >
-        <Icon name={won ? "check" : game.error ? "info" : "spark"} />
-        {(saved.error ? (
-          compact ? (
-            <span>Прогресс не сохраняется. Откройте меню.</span>
-          ) : (
-            saveNotice
-          )
-        ) : null) ||
+        <Icon name={getMessageIcon()} />
+        {renderSaveNotice() ||
           (compact ? (
             <>
               <span aria-hidden="true">{compactMessage}</span>
-              <span className={css("visually-hidden")}>{fullMessage}</span>
+              <span className={css('visually-hidden')}>{fullMessage}</span>
             </>
           ) : (
             <span>{fullMessage}</span>
           ))}
       </div>
-      <div className={css("game-toolbar")} data-testid="game-toolbar">
-        <div className={css("history-buttons")}>
+      <div className={css('game-toolbar')} data-testid="game-toolbar">
+        <div className={css('history-buttons')}>
           <Button
             type="button"
-            disabled={game.paused || !!panel || game.cursor === 0}
-            onClick={() => dispatch({ type: "undo" })}
-            className={css("", "action")}
+            disabled={game.paused || Boolean(panel) || game.cursor === 0}
+            onClick={undoMove}
+            className={css('', 'action')}
           >
             <Icon name="undo" />
             <span>Отменить</span>
           </Button>
           <Button
             type="button"
-            disabled={game.paused || !!panel || future === 0}
-            onClick={() => dispatch({ type: "redo" })}
-            className={css("", "action")}
+            disabled={game.paused || Boolean(panel) || future === 0}
+            onClick={redoMove}
+            className={css('', 'action')}
           >
             <Icon name="redo" />
             <span>Повторить</span>
@@ -262,31 +319,23 @@ export function GamePanel({
             <Button
               type="button"
               data-return-focus
-              onClick={(event) => {
-                event.currentTarget.focus();
-                openPanel("menu");
-              }}
-              className={css(" menu-button", "action")}
+              onClick={openMenu}
+              className={css(' menu-button', 'action')}
             >
               <Icon name="menu" />
               <span>Меню</span>
-              {pwa.needRefresh && (
-                <span aria-hidden="true" className={css("update-dot")} />
-              )}
+              {pwa.needRefresh && <span aria-hidden="true" className={css('update-dot')} />}
             </Button>
           </>
         ) : (
           <>
-            <span
-              className={css("history-position")}
-              data-testid="history-position"
-            >
+            <span className={css('history-position')} data-testid="history-position">
               Шаг {game.cursor} из {game.history.length - 1}
             </span>
             <Button
               type="button"
-              onClick={() => startGame(game.config)}
-              className={css(" restart-button", "action")}
+              onClick={restartGame}
+              className={css(' restart-button', 'action')}
             >
               <Icon name="restart" />
               Начать заново

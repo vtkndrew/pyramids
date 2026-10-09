@@ -3,9 +3,9 @@ export function bindClasses(styles: Readonly<Record<string, string>>) {
   return (...values: (string | undefined | false)[]) =>
     values
       .filter(Boolean)
-      .join(" ")
+      .join(' ')
       .split(/\s+/)
       .map((name) => styles[name])
       .filter(Boolean)
-      .join(" ");
+      .join(' ');
 }

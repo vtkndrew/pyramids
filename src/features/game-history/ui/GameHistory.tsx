@@ -1,6 +1,8 @@
-import type { SaveRepository, Snapshot } from "@/entities/game";
-import { useGameHistory } from "../model/useGameHistory";
-import { HistoryView } from "./HistoryView";
+import type { SaveRepository, Snapshot } from '@/entities/game';
+
+import { HistoryView } from './HistoryView';
+import { useGameHistory } from '../model/useGameHistory';
+
 export default function GameHistory({
   repository,
   latest,
@@ -15,12 +17,6 @@ export default function GameHistory({
   onBack: () => void;
 }) {
   const history = useGameHistory(repository, flush);
-  return (
-    <HistoryView
-      {...history}
-      latestId={latest?.id}
-      onOpen={onOpen}
-      onBack={onBack}
-    />
-  );
+
+  return <HistoryView {...history} latestId={latest?.id} onOpen={onOpen} onBack={onBack} />;
 }

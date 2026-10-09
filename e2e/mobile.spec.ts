@@ -1,27 +1,33 @@
-import { expect, test, type Page } from "@playwright/test";
-import { button, menuAction } from "./helpers";
+import { expect, test, type Page } from '@playwright/test';
 
-const rod = (page: Page, n: number) =>
-  page.locator(`button[data-rod="${n - 1}"]`);
-const moveCount = (page: Page) => page.locator("[data-testid=move-value]");
-async function start(page: Page, mode = "Обычный", disks = 5) {
-  await page.goto("/");
-  await page.getByRole("radio", { name: mode, exact: true }).check();
-  await page.getByRole("slider").fill(String(disks));
-  await button(page, "Начать игру").click();
-  await button(page, "Играть").click();
+import { button, menuAction } from './helpers';
+
+const rod = (page: Page, n: number) => page.locator(`button[data-rod="${n - 1}"]`);
+const moveCount = (page: Page) => page.locator('[data-testid=move-value]');
+
+async function start(page: Page, mode = 'Обычный', disks = 5) {
+  await page.goto('/');
+  await page.getByRole('radio', { name: mode, exact: true }).check();
+  await page.getByRole('slider').fill(String(disks));
+  await button(page, 'Начать игру').click();
+  await button(page, 'Играть').click();
 }
+
 async function assertFits(page: Page) {
   const metrics = await page.evaluate(() => {
     const doc = document.documentElement;
-    const board = document
-      .querySelector("[data-testid~=play-area]")!
-      .getBoundingClientRect();
+    const boardElement = document.querySelector('[data-testid~=play-area]');
+
+    if (!boardElement) throw new Error('Missing board element');
+
+    const board = boardElement.getBoundingClientRect();
     const outside: string[] = [];
+
     for (const el of document.querySelectorAll(
-      "[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span, [data-testid~=rod-top-label], [data-testid~=rod-number], [data-testid~=game-toolbar] button, [data-testid~=game-toolbar] button span, [data-testid~=game-toolbar] button svg, [data-testid~=game-heading], [data-testid~=game-message]",
+      '[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span, [data-testid~=rod-top-label], [data-testid~=rod-number], [data-testid~=game-toolbar] button, [data-testid~=game-toolbar] button span, [data-testid~=game-toolbar] button svg, [data-testid~=game-heading], [data-testid~=game-message]',
     )) {
       const r = el.getBoundingClientRect();
+
       if (
         r.width <= 0 ||
         r.height <= 0 ||
@@ -31,60 +37,74 @@ async function assertFits(page: Page) {
         r.bottom > innerHeight + 1
       )
         outside.push(el.className);
+
       if (
-        el.matches(
-          "[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span",
-        ) &&
+        el.matches('[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span') &&
         (r.left < board.left - 1 ||
           r.right > board.right + 1 ||
           r.top < board.top - 1 ||
           r.bottom > board.bottom + 1)
       )
         outside.push(`board:${el.className}`);
-      if (el.matches("[data-testid~=disk] span")) {
-        const disk = el.parentElement!.getBoundingClientRect();
+
+      if (el.matches('[data-testid~=disk] span')) {
+        const diskElement = el.parentElement;
+
+        if (!diskElement) throw new Error('Missing disk element');
+
+        const disk = diskElement.getBoundingClientRect();
+
         if (
           r.top < disk.top - 1 ||
           r.bottom > disk.bottom + 1 ||
           r.left < disk.left - 1 ||
           r.right > disk.right + 1
         )
-          outside.push("disk label");
+          outside.push('disk label');
       }
+
       if (
         el.matches(
-          "[data-testid~=game-toolbar] button span, [data-testid~=game-toolbar] button svg",
+          '[data-testid~=game-toolbar] button span, [data-testid~=game-toolbar] button svg',
         )
       ) {
-        const button = el.closest("button")!.getBoundingClientRect();
+        const buttonElement = el.closest('button');
+
+        if (!buttonElement) throw new Error('Missing button element');
+
+        const button = buttonElement.getBoundingClientRect();
+
         if (
           r.top < button.top ||
           r.bottom > button.bottom ||
           r.left < button.left ||
           r.right > button.right
         )
-          outside.push("button contents");
+          outside.push('button contents');
       }
     }
-    const buttons = [
-      ...document.querySelectorAll("[data-testid~=game-toolbar] button"),
-    ].map((el) => el.getBoundingClientRect());
+
+    const buttons = [...document.querySelectorAll('[data-testid~=game-toolbar] button')].map((el) =>
+      el.getBoundingClientRect(),
+    );
     const controlsFit =
       buttons.length === 4 &&
-      buttons.every(
-        (r, i) => r.height >= 44 && (i === 0 || r.left >= buttons[i - 1].right),
-      );
-    const heading = document
-      .querySelector("[data-testid~=game-heading]")!
-      .getBoundingClientRect();
-    const message = document
-      .querySelector("[data-testid~=game-message]")!
-      .getBoundingClientRect();
+      buttons.every((r, i) => r.height >= 44 && (i === 0 || r.left >= buttons[i - 1].right));
+    const headingElement = document.querySelector('[data-testid~=game-heading]');
+
+    if (!headingElement) throw new Error('Missing heading element');
+
+    const heading = headingElement.getBoundingClientRect();
+    const messageElement = document.querySelector('[data-testid~=game-message]');
+
+    if (!messageElement) throw new Error('Missing message element');
+
+    const message = messageElement.getBoundingClientRect();
+
     return {
       outside,
       controlsFit,
-      rowsFit:
-        heading.bottom <= board.top + 1 && board.bottom <= message.top + 1,
+      rowsFit: heading.bottom <= board.top + 1 && board.bottom <= message.top + 1,
       noScroll:
         doc.scrollWidth <= doc.clientWidth &&
         doc.scrollHeight <= doc.clientHeight &&
@@ -93,6 +113,7 @@ async function assertFits(page: Page) {
         scrollY === 0,
     };
   });
+
   expect(metrics).toEqual({
     outside: [],
     controlsFit: true,
@@ -112,230 +133,233 @@ for (const [width, height] of [
   [568, 280],
   [390, 600],
 ]) {
-  test(`every configuration fits ${width}x${height}`, async ({
-    page,
-  }, testInfo) => {
+  test(`every configuration fits ${width}x${height}`, async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width, height });
-    await page.goto("/");
+    await page.goto('/');
+
     for (const rods of [3, 4, 5, 6])
       for (let disks = 3; disks <= 10; disks++) {
+        await page.getByRole('radio', { name: String(rods), exact: true }).check();
+        await page.getByRole('slider').fill(String(disks));
         await page
-          .getByRole("radio", { name: String(rods), exact: true })
-          .check();
-        await page.getByRole("slider").fill(String(disks));
-        await page
-          .getByRole("radio", {
-            name: disks % 2 ? "Обычный" : "Хардкор",
+          .getByRole('radio', {
+            name: disks % 2 ? 'Обычный' : 'Хардкор',
             exact: true,
           })
           .check();
-        await button(page, "Начать игру").click();
-        await button(page, "Играть").click();
+        await button(page, 'Начать игру').click();
+        await button(page, 'Играть').click();
         await expect(rod(page, rods)).toBeVisible();
-        await expect(page.locator("[data-testid~=disk]")).toHaveCount(disks);
+        await expect(page.locator('[data-testid~=disk]')).toHaveCount(disks);
         await assertFits(page);
         await rod(page, 1).click(); // Raised selection also has to fit.
         await assertFits(page);
+
         if (rods === 6 && disks === 10)
-          await page.screenshot({ path: testInfo.outputPath("maximum.png") });
-        await menuAction(page, "Настройки");
+          await page.screenshot({ path: testInfo.outputPath('maximum.png') });
+
+        await menuAction(page, 'Настройки');
       }
   });
 }
 
-test("initial settings, draft, modal scrolling, focus and responsive transitions", async ({
+test('initial settings, draft, modal scrolling, focus and responsive transitions', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 568, height: 280 });
-  await page.goto("/");
-  await expect(page.getByRole("dialog")).toHaveCount(1);
-  await expect(page.locator("[data-testid~=rod]")).toHaveCount(0);
-  const dialogBounds = await page.getByRole("dialog").boundingBox();
-  const startBounds = await button(page, "Начать игру").boundingBox();
-  expect(dialogBounds!.y).toBeGreaterThanOrEqual(0);
-  expect(startBounds!.y + startBounds!.height).toBeLessThanOrEqual(280);
+  await page.goto('/');
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
+  const dialogBounds = await page.getByRole('dialog').boundingBox();
+  const startBounds = await button(page, 'Начать игру').boundingBox();
+
+  if (!dialogBounds || !startBounds) throw new Error('Expected visible dialog and start button');
+
+  expect(dialogBounds.y).toBeGreaterThanOrEqual(0);
+  expect(startBounds.y + startBounds.height).toBeLessThanOrEqual(280);
   expect(
     await page
-      .locator("[data-testid~=dialog-body]")
+      .locator('[data-testid~=dialog-body]')
       .evaluate((el) => el.scrollHeight > el.clientHeight),
   ).toBe(true);
-  await page.getByRole("radio", { name: "6", exact: true }).check();
-  await page.getByRole("slider").fill("10");
-  await page.getByRole("radio", { name: "Хардкор", exact: true }).check();
+  await page.getByRole('radio', { name: '6', exact: true }).check();
+  await page.getByRole('slider').fill('10');
+  await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
   expect(await page.evaluate(() => scrollY)).toBe(0);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("slider")).toHaveValue("10");
-  await expect(
-    page.getByRole("radio", { name: "6", exact: true }),
-  ).toBeChecked();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('slider')).toHaveValue('10');
+  await expect(page.getByRole('radio', { name: '6', exact: true })).toBeChecked();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("dialog")).toHaveCount(1);
-  await button(page, "Начать игру").click();
-  await page.getByRole("radio", { name: "Нажатия", exact: true }).check();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await button(page, 'Начать игру').click();
+  await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await expect(
-    page.getByRole("radio", { name: "Нажатия", exact: true }),
-  ).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Нажатия', exact: true })).toBeChecked();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("slider")).toHaveValue("10");
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(button(page, "Настроить игру")).toBeFocused();
-  await expect(
-    page.getByRole("region", { name: "Начальная позиция" }),
-  ).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollHeight <= innerHeight,
-    ),
-  ).toBe(true);
-  await button(page, "Настроить игру").click();
-  await expect(page.getByRole("slider")).toHaveValue("10");
-  await button(page, "Начать игру").click();
-  await button(page, "Играть").click();
-  await expect(page.getByRole("timer")).toHaveText("00:00");
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('slider')).toHaveValue('10');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(button(page, 'Настроить игру')).toBeFocused();
+  await expect(page.getByRole('region', { name: 'Начальная позиция' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(
+    true,
+  );
+  await button(page, 'Настроить игру').click();
+  await expect(page.getByRole('slider')).toHaveValue('10');
+  await button(page, 'Начать игру').click();
+  await button(page, 'Играть').click();
+  await expect(page.getByRole('timer')).toHaveText('00:00');
   await assertFits(page);
-  await button(page, "Меню").click();
+  await button(page, 'Меню').click();
+
   for (let i = 0; i < 14; i++) {
-    await page.keyboard.press(i % 3 === 0 ? "Shift+Tab" : "Tab");
-    expect(
-      await page.evaluate(() => !!document.activeElement?.closest("dialog")),
-    ).toBe(true);
+    await page.keyboard.press(i % 3 === 0 ? 'Shift+Tab' : 'Tab');
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('dialog')))).toBe(
+      true,
+    );
   }
-  await button(page, "Правила").click();
-  await expect(page.getByRole("dialog")).toHaveCount(1);
-  await button(page, "Назад").click();
-  await expect(button(page, "Настройки")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(button(page, "Меню")).toBeFocused();
+
+  await button(page, 'Правила').click();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await button(page, 'Назад').click();
+  await expect(button(page, 'Настройки')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(button(page, 'Меню')).toBeFocused();
 });
 
-test("menu freezes time and preserves manual pause, history and controls", async ({
-  page,
-}) => {
-  await page.clock.install({ time: new Date("2026-10-07T12:00:00Z") });
-  await page.goto("/");
-  await page.clock.pauseAt(new Date("2026-10-07T12:00:10Z"));
-  await button(page, "Начать игру").click();
-  await button(page, "Играть").click();
+test('menu freezes time and preserves manual pause, history and controls', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-07T12:00:00Z') });
+  await page.goto('/');
+  await page.clock.pauseAt(new Date('2026-10-07T12:00:10Z'));
+  await button(page, 'Начать игру').click();
+  await button(page, 'Играть').click();
   await rod(page, 1).tap();
   await rod(page, 3).tap();
   await page.clock.runFor(1500);
-  await button(page, "Меню").click();
-  await expect(page.getByText("Шаг 1 из 1")).toBeVisible();
-  await expect(page.locator("[data-testid~=rod]")).toHaveCount(0);
+  await button(page, 'Меню').click();
+  await expect(page.getByText('Шаг 1 из 1')).toBeVisible();
+  await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
   await page.clock.runFor(60_000);
-  await button(page, "Правила").click();
+  await button(page, 'Правила').click();
   await page.clock.runFor(60_000);
-  await button(page, "Назад").click();
-  await button(page, "Управление").click();
-  await page.getByRole("radio", { name: "Нажатия", exact: true }).check();
-  await button(page, "Применить").click();
-  await expect(page.getByRole("timer")).toHaveText("00:01");
-  await expect(moveCount(page)).toHaveText("1");
+  await button(page, 'Назад').click();
+  await button(page, 'Управление').click();
+  await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
+  await button(page, 'Применить').click();
+  await expect(page.getByRole('timer')).toHaveText('00:01');
+  await expect(moveCount(page)).toHaveText('1');
   await page.clock.runFor(500);
-  await expect(page.getByRole("timer")).toHaveText("00:02");
-  await button(page, "Пауза").click();
+  await expect(page.getByRole('timer')).toHaveText('00:02');
+  await button(page, 'Пауза').click();
   await assertFits(page);
-  await menuAction(page, "Настройки");
-  await page.getByRole("radio", { name: "Хардкор", exact: true }).check();
-  await button(page, "Начать игру").click();
-  await page.keyboard.press("Escape");
-  await button(page, "Назад к игре").click();
-  await expect(
-    page.getByRole("heading", { name: "Игра на паузе" }),
-  ).toBeVisible();
+  await menuAction(page, 'Настройки');
+  await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
+  await button(page, 'Начать игру').click();
+  await page.keyboard.press('Escape');
+  await button(page, 'Назад к игре').click();
+  await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
   await page.clock.runFor(10_000);
-  await expect(page.getByRole("timer")).toHaveText("00:02");
-  await expect(page.locator("[data-testid~=mode-badge]")).toHaveText("Обычный");
-  await page.locator("[data-testid~=pause-button]").click();
-  await expect(page.locator("[data-control=tap]")).toBeVisible();
-  await button(page, "Отменить").click();
-  await menuAction(page, "Правила");
-  await page.keyboard.press("Escape");
-  await button(page, "Повторить").click();
-  await expect(moveCount(page)).toHaveText("1");
-  await menuAction(page, "Начать заново");
-  await expect(page.getByRole("timer")).toHaveText("00:00");
-  await expect(moveCount(page)).toHaveText("0");
-  await expect(page.locator("[data-control=tap]")).toBeVisible();
+  await expect(page.getByRole('timer')).toHaveText('00:02');
+  await expect(page.locator('[data-testid~=mode-badge]')).toHaveText('Обычный');
+  await page.locator('[data-testid~=pause-button]').click();
+  await expect(page.locator('[data-control=tap]')).toBeVisible();
+  await button(page, 'Отменить').click();
+  await menuAction(page, 'Правила');
+  await page.keyboard.press('Escape');
+  await button(page, 'Повторить').click();
+  await expect(moveCount(page)).toHaveText('1');
+  await menuAction(page, 'Начать заново');
+  await expect(page.getByRole('timer')).toHaveText('00:00');
+  await expect(moveCount(page)).toHaveText('0');
+  await expect(page.locator('[data-control=tap]')).toBeVisible();
 });
 
-test("pointer gestures and touch taps survive rotation and opening the menu", async ({
+test('pointer gestures and touch taps survive rotation and opening the menu', async ({
   page,
   browserName,
 }) => {
   await start(page);
+
   const center = async (n: number) => {
-    const r = (await rod(page, n).boundingBox())!;
+    const r = await rod(page, n).boundingBox();
+
+    if (!r) throw new Error('Expected visible element bounds');
+
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
   };
+
   async function down(n: number) {
     const p = await center(n);
+
     await page.mouse.move(p.x, p.y);
     await page.mouse.down();
   }
+
   async function move(n: number) {
     const p = await center(n);
+
     await page.mouse.move(p.x, p.y, { steps: 5 });
   }
+
   await down(1);
   await move(3);
   await page.mouse.up();
-  await expect(moveCount(page)).toHaveText("1");
+  await expect(moveCount(page)).toHaveText('1');
   await down(1);
   await move(2);
   await page.setViewportSize({ width: 844, height: 390 });
-  await expect(page.locator("[data-testid~=drag-ghost]")).toHaveCount(0);
+  await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
   await page.mouse.up();
-  await expect(moveCount(page)).toHaveText("1");
+  await expect(moveCount(page)).toHaveText('1');
   await assertFits(page);
   await down(1);
   await move(2);
-  await button(page, "Меню").focus();
-  await page.keyboard.press("Enter");
+  await button(page, 'Меню').focus();
+  await page.keyboard.press('Enter');
   await page.mouse.up();
-  await expect(page.locator("[data-testid~=drag-ghost]")).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  await expect(moveCount(page)).toHaveText("1");
+  await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(moveCount(page)).toHaveText('1');
   await rod(page, 1).tap();
   await rod(page, 2).tap();
-  await expect(moveCount(page)).toHaveText("2");
-  await menuAction(page, "Настройки");
-  await page.getByRole("radio", { name: "Хардкор", exact: true }).check();
-  await button(page, "Начать игру").click();
-  await button(page, "Играть").click();
+  await expect(moveCount(page)).toHaveText('2');
+  await menuAction(page, 'Настройки');
+  await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
+  await button(page, 'Начать игру').click();
+  await button(page, 'Играть').click();
   await down(1);
   const p = await center(1);
+
   await page.mouse.move(p.x + 100, p.y, { steps: 5 });
   await page.mouse.up();
-  await expect(moveCount(page)).toHaveText("1");
+  await expect(moveCount(page)).toHaveText('1');
   await expect(rod(page, 2)).toHaveAccessibleName(/Верхний диск: 1/);
   await rod(page, 1).tap();
   await rod(page, 2).tap(); // Illegal larger disk.
-  await expect(page.getByRole("status")).toContainText("Большой диск");
+  await expect(page.getByRole('status')).toContainText('Большой диск');
   await assertFits(page);
-  if (browserName === "chromium") await page.mouse.wheel(0, 300);
+
+  if (browserName === 'chromium') await page.mouse.wheel(0, 300);
   else await page.evaluate(() => window.scrollBy(0, 300));
+
   expect(await page.evaluate(() => scrollY)).toBe(0);
 });
 
-test("victory, long timer and move count fit without obscuring the board", async ({
-  page,
-}) => {
+test('victory, long timer and move count fit without obscuring the board', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 480 });
   await page.clock.install();
-  await start(page, "Обычный", 3);
+  await start(page, 'Обычный', 3);
   await page.clock.fastForward(360_000_000);
-  await expect(page.getByRole("timer")).toContainText("100:00:");
+  await expect(page.getByRole('timer')).toContainText('100:00:');
   // Text stress fixture only: history semantics are covered by the reducer tests.
-  await page.locator("[data-testid=move-value]").evaluate((el) => {
-    el.textContent = "59048";
+  await page.locator('[data-testid=move-value]').evaluate((el) => {
+    el.textContent = '59048';
   });
   await assertFits(page);
+
   for (const [from, to] of [
     [1, 3],
     [1, 2],
@@ -348,12 +372,13 @@ test("victory, long timer and move count fit without obscuring the board", async
     await rod(page, from).tap();
     await rod(page, to).tap();
   }
-  await expect(page.getByRole("status")).toContainText("Пирамидка собрана!");
-  await expect(moveCount(page)).toHaveText("7");
+
+  await expect(page.getByRole('status')).toContainText('Пирамидка собрана!');
+  await expect(moveCount(page)).toHaveText('7');
   await assertFits(page);
-  await button(page, "Отменить").click();
+  await button(page, 'Отменить').click();
   await assertFits(page);
-  await button(page, "Повторить").click();
+  await button(page, 'Повторить').click();
   await expect(rod(page, 3)).toBeDisabled();
-  await expect(button(page, "Пауза")).toBeDisabled();
+  await expect(button(page, 'Пауза')).toBeDisabled();
 });

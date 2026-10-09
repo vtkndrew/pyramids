@@ -34,8 +34,7 @@
 .app-dialog {
   padding: 0;
   max-height: calc(
-    100dvh - 24px - env(safe-area-inset-top, 0px) -
-      env(safe-area-inset-bottom, 0px)
+    100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
   );
   overflow: visible;
 }
@@ -90,10 +89,7 @@
   .app-dialog {
     width: min(
       480px,
-      calc(
-        100% - 16px - env(safe-area-inset-left, 0px) -
-          env(safe-area-inset-right, 0px)
-      )
+      calc(100% - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
     );
   }
   .app-dialog .dialog-heading {

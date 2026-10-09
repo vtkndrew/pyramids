@@ -1,14 +1,14 @@
-import { DialogForm, DialogBody, DialogFooter } from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
-import styles from "./GameSetup.module.css";
-import { bindClasses } from "@/shared/lib/styles";
-import {
-  CONTROL_HINTS,
-  CONTROL_LABELS,
-  type ControlMode,
-} from "@/entities/game";
-import type { GameMode } from "@/entities/game";
+import { useCallback, type ComponentProps } from 'react';
+
+import { CONTROL_HINTS, CONTROL_LABELS, type ControlMode, type GameMode } from '@/entities/game';
+import { bindClasses } from '@/shared/lib/styles';
+import { Button } from '@/shared/ui/button';
+import { DialogForm, DialogBody, DialogFooter } from '@/shared/ui/dialog';
+
+import styles from './GameSetup.module.css';
+
 const css = bindClasses(styles);
+
 export default function ControlDialog({
   mode,
   control,
@@ -22,29 +22,28 @@ export default function ControlDialog({
   onChange: (control: ControlMode) => void;
   onConfirm: () => void;
 }) {
+  const handleSubmit = useCallback<NonNullable<ComponentProps<typeof DialogForm>['onSubmit']>>(
+    (event) => {
+      event.preventDefault();
+      onConfirm();
+    },
+    [onConfirm],
+  );
+
   return (
-    <DialogForm
-      onSubmit={(event) => {
-        event.preventDefault();
-        onConfirm();
-      }}
-      className={css("dialog-form")}
-    >
-      <DialogBody className={css("dialog-body")} data-testid="dialog-body">
-        <p className={css("dialog-description")}>
+    <DialogForm onSubmit={handleSubmit} className={css('dialog-form')}>
+      <DialogBody className={css('dialog-body')} data-testid="dialog-body">
+        <p className={css('dialog-description')}>
           {newGame
-            ? "Выберите удобный способ. Его можно поменять во время партии."
-            : "Позиция, история и время сохранятся."}
+            ? 'Выберите удобный способ. Его можно поменять во время партии.'
+            : 'Позиция, история и время сохранятся.'}
         </p>
-        <fieldset className={css("control-options")}>
-          <legend className={css("visually-hidden")}>Способ управления</legend>
-          {(["tap", "drag", "swipe"] as const)
-            .filter((option) => mode === "hardcore" || option !== "swipe")
+        <fieldset className={css('control-options')}>
+          <legend className={css('visually-hidden')}>Способ управления</legend>
+          {(['tap', 'drag', 'swipe'] as const)
+            .filter((option) => mode === 'hardcore' || option !== 'swipe')
             .map((option) => (
-              <label
-                key={option}
-                className={css(`option ${control === option ? "checked" : ""}`)}
-              >
+              <label key={option} className={css(`option ${control === option ? 'checked' : ''}`)}>
                 <input
                   type="radio"
                   name="control"
@@ -56,45 +55,35 @@ export default function ControlDialog({
               </label>
             ))}
         </fieldset>
-        <div
-          key={control}
-          aria-hidden="true"
-          className={css(`control-demo demo-${control}`)}
-        >
-          <div className={css("demo-track")}>
-            <span className={css("demo-rod demo-source")} />
-            <span className={css("demo-rod demo-target")} />
-            <span className={css("demo-base-disk")} />
-            <span
-              className={css("demo-moving-disk")}
-              data-testid="demo-moving-disk"
-            />
-            <span className={css("demo-pointer")} />
-            <span className={css("demo-ripple demo-tap-source")} />
-            <span className={css("demo-ripple demo-tap-target")} />
+        <div key={control} aria-hidden="true" className={css(`control-demo demo-${control}`)}>
+          <div className={css('demo-track')}>
+            <span className={css('demo-rod demo-source')} />
+            <span className={css('demo-rod demo-target')} />
+            <span className={css('demo-base-disk')} />
+            <span className={css('demo-moving-disk')} data-testid="demo-moving-disk" />
+            <span className={css('demo-pointer')} />
+            <span className={css('demo-ripple demo-tap-source')} />
+            <span className={css('demo-ripple demo-tap-target')} />
           </div>
-          <div className={css("demo-labels")}>
+          <div className={css('demo-labels')}>
             <span>Отсюда</span>
             <span>Сюда</span>
           </div>
         </div>
-        <p className={css("control-explanation")}>{CONTROL_HINTS[control]}</p>
-        <p className={css("control-extra")}>
-          Нажатия доступны всегда. На клавиатуре: номер исходного стержня, затем
-          номер целевого — клавиши 1–6.
+        <p className={css('control-explanation')}>{CONTROL_HINTS[control]}</p>
+        <p className={css('control-extra')}>
+          Нажатия доступны всегда. На клавиатуре: номер исходного стержня, затем номер целевого —
+          клавиши 1–6.
         </p>
       </DialogBody>
-      <DialogFooter
-        className={css("dialog-footer")}
-        data-testid="dialog-footer"
-      >
+      <DialogFooter className={css('dialog-footer')} data-testid="dialog-footer">
         <Button
           type="submit"
           variant="primary"
           layout="start"
-          className={css(" start-button", "action", "primary-action")}
+          className={css(' start-button', 'action', 'primary-action')}
         >
-          {newGame ? "Играть" : "Применить"}
+          {newGame ? 'Играть' : 'Применить'}
         </Button>
       </DialogFooter>
     </DialogForm>
