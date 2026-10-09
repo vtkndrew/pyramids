@@ -28,8 +28,7 @@ export function useGameHistory(
     return () => {
       live = false;
     };
-    // A mounted history view is a paused snapshot. Read again on pagination.
-  }, [repository, limit]);
+  }, [repository, limit, flush]);
   return {
     records,
     more,

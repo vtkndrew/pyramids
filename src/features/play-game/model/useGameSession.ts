@@ -49,6 +49,8 @@ export function useGameSession(screenActive: boolean) {
     blocked,
     enqueue,
     load: loadSave,
+    flush: flushSave,
+    retryRead,
   } = persistence;
 
   const checkpoint = useCallback(() => {
@@ -80,10 +82,11 @@ export function useGameSession(screenActive: boolean) {
     !isWon(game) &&
     !conflict &&
     !incompatible;
+  const { setRunning } = clock;
   useLayoutEffect(() => {
-    clock.setRunning(running);
+    setRunning(running);
     if (!running) checkpoint();
-  }, [running, session, clock.setRunning, checkpoint]);
+  }, [running, session, setRunning, checkpoint]);
 
   const dispatch = useCallback(
     (action: Action) => {
@@ -163,16 +166,16 @@ export function useGameSession(screenActive: boolean) {
       checkpoint();
     }
   };
-  const flush = async () => {
+  const flush = useCallback(async () => {
     if (blocked.current) throw new Error(error ?? "Сохранение недоступно.");
     checkpoint();
-    await persistence.flush();
+    await flushSave();
     if (error && !active.current) {
-      const found = await persistence.retryRead();
+      const found = await retryRead();
       current.current = found;
       setLatest(found);
     }
-  };
+  }, [blocked, error, checkpoint, flushSave, retryRead]);
   return {
     game,
     dispatch,

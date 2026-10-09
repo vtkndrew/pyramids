@@ -37,5 +37,5 @@ export function useSessionLifecycle({
       document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("pagehide", hide);
     };
-  }, [dispatch, checkpoint]);
+  }, [dispatch, checkpoint, active, clockRef]);
 }
