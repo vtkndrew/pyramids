@@ -18,7 +18,9 @@ function move(game: Game, from: number, to: number): Game {
 }
 
 function solve(game: Game, n: number, from: number, to: number, spare: number): Game {
-  if (n === 0) return game;
+  if (n === 0) {
+    return game;
+  }
 
   const first = solve(game, n - 1, from, spare, to);
   const next = move(first, from, to);
@@ -109,7 +111,9 @@ describe('hardcore mode', () => {
     expect(currentBoard(left)).toEqual(currentBoard(initial));
     let atEnd = initial;
 
-    for (let from = 0; from < rods - 1; from++) atEnd = move(atEnd, from, from + 1);
+    for (let from = 0; from < rods - 1; from++) {
+      atEnd = move(atEnd, from, from + 1);
+    }
 
     const wrap = move(atEnd, rods - 1, 0);
 
@@ -163,13 +167,17 @@ describe('hardcore mode', () => {
       const step = (from: number, to: number) => {
         game = move(game, from, to);
 
-        if (game.error) throw new Error(game.error);
+        if (game.error) {
+          throw new Error(game.error);
+        }
 
         moves++;
       };
 
       const solveAdjacent = (count: number, from: number, to: number): void => {
-        if (count === 0) return;
+        if (count === 0) {
+          return;
+        }
 
         solveAdjacent(count - 1, from, to);
         step(from, 1);
@@ -185,12 +193,16 @@ describe('hardcore mode', () => {
       expect(isWon(game)).toBe(true);
       expect(gameReducer(game, { type: 'pause' })).toBe(game);
 
-      for (let i = 0; i < moves; i++) game = gameReducer(game, { type: 'undo' });
+      for (let i = 0; i < moves; i++) {
+        game = gameReducer(game, { type: 'undo' });
+      }
 
       expect(currentBoard(game)).toEqual(currentBoard(initial));
       expect(isWon(game)).toBe(false);
 
-      for (let i = 0; i < moves; i++) game = gameReducer(game, { type: 'redo' });
+      for (let i = 0; i < moves; i++) {
+        game = gameReducer(game, { type: 'redo' });
+      }
 
       expect(game.cursor).toBe(moves);
       expect(isWon(game)).toBe(true);
@@ -302,12 +314,16 @@ describe('history and victory', () => {
 
     expect(isWon(game)).toBe(false);
 
-    for (let i = 0; i < 8; i++) game = gameReducer(game, { type: 'undo' });
+    for (let i = 0; i < 8; i++) {
+      game = gameReducer(game, { type: 'undo' });
+    }
 
     expect(game.cursor).toBe(0);
     expect(currentBoard(game)).toEqual(currentBoard(initial));
 
-    for (let i = 0; i < 8; i++) game = gameReducer(game, { type: 'redo' });
+    for (let i = 0; i < 8; i++) {
+      game = gameReducer(game, { type: 'redo' });
+    }
 
     expect(game.cursor).toBe(7);
     expect(isWon(game)).toBe(true);

@@ -18,7 +18,9 @@ async function assertFits(page: Page) {
     const doc = document.documentElement;
     const boardElement = document.querySelector('[data-testid~=play-area]');
 
-    if (!boardElement) throw new Error('Missing board element');
+    if (!boardElement) {
+      throw new Error('Missing board element');
+    }
 
     const board = boardElement.getBoundingClientRect();
     const outside: string[] = [];
@@ -35,8 +37,9 @@ async function assertFits(page: Page) {
         r.top < 0 ||
         r.right > innerWidth + 1 ||
         r.bottom > innerHeight + 1
-      )
+      ) {
         outside.push(el.className);
+      }
 
       if (
         el.matches('[data-testid~=rod], [data-testid~=disk], [data-testid~=disk] span') &&
@@ -44,13 +47,16 @@ async function assertFits(page: Page) {
           r.right > board.right + 1 ||
           r.top < board.top - 1 ||
           r.bottom > board.bottom + 1)
-      )
+      ) {
         outside.push(`board:${el.className}`);
+      }
 
       if (el.matches('[data-testid~=disk] span')) {
         const diskElement = el.parentElement;
 
-        if (!diskElement) throw new Error('Missing disk element');
+        if (!diskElement) {
+          throw new Error('Missing disk element');
+        }
 
         const disk = diskElement.getBoundingClientRect();
 
@@ -59,8 +65,9 @@ async function assertFits(page: Page) {
           r.bottom > disk.bottom + 1 ||
           r.left < disk.left - 1 ||
           r.right > disk.right + 1
-        )
+        ) {
           outside.push('disk label');
+        }
       }
 
       if (
@@ -70,7 +77,9 @@ async function assertFits(page: Page) {
       ) {
         const buttonElement = el.closest('button');
 
-        if (!buttonElement) throw new Error('Missing button element');
+        if (!buttonElement) {
+          throw new Error('Missing button element');
+        }
 
         const button = buttonElement.getBoundingClientRect();
 
@@ -79,8 +88,9 @@ async function assertFits(page: Page) {
           r.bottom > button.bottom ||
           r.left < button.left ||
           r.right > button.right
-        )
+        ) {
           outside.push('button contents');
+        }
       }
     }
 
@@ -92,12 +102,16 @@ async function assertFits(page: Page) {
       buttons.every((r, i) => r.height >= 44 && (i === 0 || r.left >= buttons[i - 1].right));
     const headingElement = document.querySelector('[data-testid~=game-heading]');
 
-    if (!headingElement) throw new Error('Missing heading element');
+    if (!headingElement) {
+      throw new Error('Missing heading element');
+    }
 
     const heading = headingElement.getBoundingClientRect();
     const messageElement = document.querySelector('[data-testid~=game-message]');
 
-    if (!messageElement) throw new Error('Missing message element');
+    if (!messageElement) {
+      throw new Error('Missing message element');
+    }
 
     const message = messageElement.getBoundingClientRect();
 
@@ -138,7 +152,7 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await page.goto('/');
 
-    for (const rods of [3, 4, 5, 6])
+    for (const rods of [3, 4, 5, 6]) {
       for (let disks = 3; disks <= 10; disks++) {
         await page.getByRole('radio', { name: String(rods), exact: true }).check();
         await page.getByRole('slider').fill(String(disks));
@@ -156,11 +170,13 @@ for (const [width, height] of [
         await rod(page, 1).click(); // Raised selection also has to fit.
         await assertFits(page);
 
-        if (rods === 6 && disks === 10)
+        if (rods === 6 && disks === 10) {
           await page.screenshot({ path: testInfo.outputPath('maximum.png') });
+        }
 
         await menuAction(page, 'Настройки');
       }
+    }
   });
 }
 
@@ -174,7 +190,9 @@ test('initial settings, draft, modal scrolling, focus and responsive transitions
   const dialogBounds = await page.getByRole('dialog').boundingBox();
   const startBounds = await button(page, 'Начать игру').boundingBox();
 
-  if (!dialogBounds || !startBounds) throw new Error('Expected visible dialog and start button');
+  if (!dialogBounds || !startBounds) {
+    throw new Error('Expected visible dialog and start button');
+  }
 
   expect(dialogBounds.y).toBeGreaterThanOrEqual(0);
   expect(startBounds.y + startBounds.height).toBeLessThanOrEqual(280);
@@ -286,7 +304,9 @@ test('pointer gestures and touch taps survive rotation and opening the menu', as
   const center = async (n: number) => {
     const r = await rod(page, n).boundingBox();
 
-    if (!r) throw new Error('Expected visible element bounds');
+    if (!r) {
+      throw new Error('Expected visible element bounds');
+    }
 
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
   };
@@ -342,8 +362,11 @@ test('pointer gestures and touch taps survive rotation and opening the menu', as
   await expect(page.getByRole('status')).toContainText('Большой диск');
   await assertFits(page);
 
-  if (browserName === 'chromium') await page.mouse.wheel(0, 300);
-  else await page.evaluate(() => window.scrollBy(0, 300));
+  if (browserName === 'chromium') {
+    await page.mouse.wheel(0, 300);
+  } else {
+    await page.evaluate(() => window.scrollBy(0, 300));
+  }
 
   expect(await page.evaluate(() => scrollY)).toBe(0);
 });

@@ -71,26 +71,36 @@ export function useGamePage() {
     if (!saved.loading && !bootHandled.current) {
       bootHandled.current = true;
 
-      if (saved.latest) setPanel('welcome');
+      if (saved.latest) {
+        setPanel('welcome');
+      }
     }
   }, [saved.loading, saved.latest]);
   useEffect(() => {
-    if (saved.conflict || saved.incompatible) setPanel('storage');
+    if (saved.conflict || saved.incompatible) {
+      setPanel('storage');
+    }
   }, [saved.conflict, saved.incompatible]);
 
   useEffect(() => {
-    if (hasGame && !panel) gameHeading.current?.focus({ preventScroll: true });
+    if (hasGame && !panel) {
+      gameHeading.current?.focus({ preventScroll: true });
+    }
   }, [hasGame, panel, timerSession]);
 
   useGameKeyboard(hasGame && !panel && !game.paused && !won, game.config.rods, dispatch);
 
   function openPanel(next: Exclude<Panel, null>, viaMenu = false) {
-    if (!panel) setPausedFieldHeight(fieldRef.current?.getBoundingClientRect().height);
+    if (!panel) {
+      setPausedFieldHeight(fieldRef.current?.getBoundingClientRect().height);
+    }
 
     dispatch({ type: 'clearSelection' });
     setFromMenu(viaMenu);
 
-    if (next === 'settings') setDraft(hasGame ? game.config : draft);
+    if (next === 'settings') {
+      setDraft(hasGame ? game.config : draft);
+    }
 
     if (next === 'controls') {
       setNewGameControls(false);

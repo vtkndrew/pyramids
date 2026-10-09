@@ -50,23 +50,30 @@ export function useBoardGestures({
   const cancel = useCallback(() => {
     const current = gesture.current;
 
-    if (!current) return;
+    if (!current) {
+      return;
+    }
 
     suppressClick.current = true;
     gesture.current = null;
     setVisual(null);
 
-    if (current.element.hasPointerCapture(current.id))
+    if (current.element.hasPointerCapture(current.id)) {
       current.element.releasePointerCapture(current.id);
+    }
   }, []);
 
   useEffect(() => {
     const extraPointer = (event: PointerEvent) => {
-      if (gesture.current && event.pointerId !== gesture.current.id) cancel();
+      if (gesture.current && event.pointerId !== gesture.current.id) {
+        cancel();
+      }
     };
 
     const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' || /^[1-6]$/.test(event.key)) cancel();
+      if (event.key === 'Escape' || /^[1-6]$/.test(event.key)) {
+        cancel();
+      }
     };
 
     let previousSize = '';
@@ -74,12 +81,16 @@ export function useBoardGestures({
       const { width, height } = entries[0].contentRect;
       const size = `${width}:${height}`;
 
-      if (previousSize && size !== previousSize) cancel();
+      if (previousSize && size !== previousSize) {
+        cancel();
+      }
 
       previousSize = size;
     });
 
-    if (root.current) observer.observe(root.current);
+    if (root.current) {
+      observer.observe(root.current);
+    }
 
     document.addEventListener('pointerdown', extraPointer, true);
     document.addEventListener('keydown', key);
@@ -105,27 +116,36 @@ export function useBoardGestures({
     for (const cell of cells ?? []) {
       const rect = cell.getBoundingClientRect();
 
-      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
         return Number(cell.dataset.rod);
+      }
     }
 
     return null;
   }
 
   function down(event: ReactPointerEvent<HTMLElement>, from: number) {
-    if (!event.isPrimary) return;
+    if (!event.isPrimary) {
+      return;
+    }
 
     suppressClick.current = false;
 
-    if (!enabled || control === 'tap' || event.button !== 0) return;
+    if (!enabled || control === 'tap' || event.button !== 0) {
+      return;
+    }
 
     const disk = board[from].at(-1);
 
-    if (disk === undefined) return;
+    if (disk === undefined) {
+      return;
+    }
 
     const diskElement = event.currentTarget.querySelector('[data-disk]:last-child');
 
-    if (!diskElement) return;
+    if (!diskElement) {
+      return;
+    }
 
     const rect = diskElement.getBoundingClientRect();
 
@@ -150,7 +170,9 @@ export function useBoardGestures({
   function update(event: ReactPointerEvent<HTMLElement>) {
     const current = gesture.current;
 
-    if (!current || current.id !== event.pointerId) return;
+    if (!current || current.id !== event.pointerId) {
+      return;
+    }
 
     current.x = event.clientX;
     current.y = event.clientY;
@@ -171,9 +193,13 @@ export function useBoardGestures({
     }
 
     if (current.active) {
-      if (control === 'drag') current.target = targetAt(current.x, current.y);
-      else if (recognized) current.target = current.from + Math.sign(dx);
-      else current.target = null;
+      if (control === 'drag') {
+        current.target = targetAt(current.x, current.y);
+      } else if (recognized) {
+        current.target = current.from + Math.sign(dx);
+      } else {
+        current.target = null;
+      }
 
       setVisual({ ...current });
     }
@@ -183,13 +209,16 @@ export function useBoardGestures({
     update(event);
     const current = gesture.current;
 
-    if (!current || current.id !== event.pointerId) return;
+    if (!current || current.id !== event.pointerId) {
+      return;
+    }
 
     gesture.current = null;
     setVisual(null);
 
-    if (current.element.hasPointerCapture(current.id))
+    if (current.element.hasPointerCapture(current.id)) {
       current.element.releasePointerCapture(current.id);
+    }
 
     if (current.active && current.target !== null && current.target !== current.from) {
       callbacks.current.onMove?.(current.from, current.target);

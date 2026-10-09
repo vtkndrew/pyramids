@@ -8,19 +8,25 @@ export function useGameKeyboard(
   dispatch: (action: Action) => void,
 ) {
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     const onKey = (event: KeyboardEvent) => {
-      if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+      if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+        return;
+      }
 
       if (
         event.target instanceof HTMLElement &&
         event.target.closest('input, textarea, select, [contenteditable], dialog, [role="dialog"]')
-      )
+      ) {
         return;
+      }
 
-      if (event.key === 'Escape') dispatch({ type: 'clearSelection' });
-      else if (/^[1-6]$/.test(event.key) && Number(event.key) <= rods) {
+      if (event.key === 'Escape') {
+        dispatch({ type: 'clearSelection' });
+      } else if (/^[1-6]$/.test(event.key) && Number(event.key) <= rods) {
         event.preventDefault();
         dispatch({ type: 'select', rod: Number(event.key) - 1 });
       }

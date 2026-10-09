@@ -62,13 +62,19 @@ export function isWon(game: Game): boolean {
 }
 
 export function moveError(board: Board, from: number, to: number, mode: GameMode): string | null {
-  if (!board[from] || !board[to]) return 'Выберите стержень на поле.';
+  if (!board[from] || !board[to]) {
+    return 'Выберите стержень на поле.';
+  }
 
-  if (from === to) return 'Выберите другой стержень.';
+  if (from === to) {
+    return 'Выберите другой стержень.';
+  }
 
   const disk = board[from].at(-1);
 
-  if (disk === undefined) return 'На этом стержне нет дисков. Выберите другой.';
+  if (disk === undefined) {
+    return 'На этом стержне нет дисков. Выберите другой.';
+  }
 
   if (mode === 'hardcore' && Math.abs(from - to) !== 1) {
     return 'В хардкоре диск можно перенести только на соседний стержень.';
@@ -76,8 +82,9 @@ export function moveError(board: Board, from: number, to: number, mode: GameMode
 
   const top = board[to].at(-1);
 
-  if (top !== undefined && disk > top)
+  if (top !== undefined && disk > top) {
     return 'Большой диск нельзя положить на маленький. Выберите другой стержень.';
+  }
 
   return null;
 }
@@ -89,8 +96,9 @@ export function gameReducer(game: Game, action: Action): Game {
       action.type === 'move' ||
       action.type === 'undo' ||
       action.type === 'redo')
-  )
+  ) {
     return game;
+  }
 
   switch (action.type) {
     case 'restore':
@@ -128,13 +136,19 @@ export function gameReducer(game: Game, action: Action): Game {
       };
 
     case 'select': {
-      if (isWon(game)) return game;
+      if (isWon(game)) {
+        return game;
+      }
 
       const board = currentBoard(game);
 
-      if (!board[action.rod]) return game;
+      if (!board[action.rod]) {
+        return game;
+      }
 
-      if (game.selected === action.rod) return { ...game, selected: null, error: null };
+      if (game.selected === action.rod) {
+        return { ...game, selected: null, error: null };
+      }
 
       if (game.selected === null) {
         return board[action.rod].length
@@ -152,13 +166,17 @@ function applyMove(game: Game, from: number, to: number): Game {
   const board = currentBoard(game);
   const error = moveError(board, from, to, game.config.mode);
 
-  if (error) return { ...game, error };
+  if (error) {
+    return { ...game, error };
+  }
 
   const next = board.map((rod) => [...rod]);
 
   const disk = next[from].pop();
 
-  if (disk === undefined) return game;
+  if (disk === undefined) {
+    return game;
+  }
 
   next[to].push(disk);
 

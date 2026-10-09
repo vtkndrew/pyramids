@@ -53,7 +53,9 @@ export function useGameSession(screenActive: boolean) {
   } = persistence;
 
   const checkpoint = useCallback(() => {
-    if (!active.current || !current.current || blocked.current) return;
+    if (!active.current || !current.current || blocked.current) {
+      return;
+    }
 
     current.current = { ...current.current, elapsed: clockRef.current.read() };
     setLatest(current.current);
@@ -85,19 +87,27 @@ export function useGameSession(screenActive: boolean) {
   useLayoutEffect(() => {
     setRunning(running);
 
-    if (!running) checkpoint();
+    if (!running) {
+      checkpoint();
+    }
   }, [running, session, setRunning, checkpoint]);
 
   const dispatch = useCallback(
     (action: Action) => {
-      if (!active.current || !current.current || blocked.current) return;
+      if (!active.current || !current.current || blocked.current) {
+        return;
+      }
 
       const before = current.current.game;
       const next = gameReducer(before, action);
 
-      if (next === before) return;
+      if (next === before) {
+        return;
+      }
 
-      if (next.paused || isWon(next)) clockRef.current.setRunning(false);
+      if (next.paused || isWon(next)) {
+        clockRef.current.setRunning(false);
+      }
 
       current.current = { ...current.current, game: next };
       setGame(next);
@@ -106,8 +116,9 @@ export function useGameSession(screenActive: boolean) {
         next.history !== before.history ||
         next.cursor !== before.cursor ||
         next.paused !== before.paused
-      )
+      ) {
         checkpoint();
+      }
     },
     [checkpoint, blocked],
   );
@@ -117,7 +128,9 @@ export function useGameSession(screenActive: boolean) {
   const persistentRequested = useRef(false);
 
   const start = (config: Config, nextControl = defaultControl(config.mode)) => {
-    if (loading || blocked.current) return false;
+    if (loading || blocked.current) {
+      return false;
+    }
 
     clock.setRunning(false);
     checkpoint();
@@ -153,7 +166,9 @@ export function useGameSession(screenActive: boolean) {
   };
 
   const resume = () => {
-    if (!current.current || blocked.current) return false;
+    if (!current.current || blocked.current) {
+      return false;
+    }
 
     const saved = current.current;
     const restored = gameReducer(saved.game, {
@@ -184,7 +199,9 @@ export function useGameSession(screenActive: boolean) {
   };
 
   const flush = useCallback(async () => {
-    if (blocked.current) throw new Error(error ?? 'Сохранение недоступно.');
+    if (blocked.current) {
+      throw new Error(error ?? 'Сохранение недоступно.');
+    }
 
     checkpoint();
     await flushSave();
@@ -215,7 +232,9 @@ export function useGameSession(screenActive: boolean) {
     flush,
     beforeUpdate: async () => {
       // A newer save must remain untouched while updating the older app that cannot read it.
-      if (incompatible && !active.current) return;
+      if (incompatible && !active.current) {
+        return;
+      }
 
       await flush();
     },

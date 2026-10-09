@@ -208,4 +208,9 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
   prettier,
+  {
+    files: ['**/*.{js,mjs,ts,tsx}'],
+    // eslint-config-prettier disables curly; the 'all' option is compatible with Prettier.
+    rules: { curly: ['error', 'all'] },
+  },
 ]);

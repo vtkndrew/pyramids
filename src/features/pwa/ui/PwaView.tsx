@@ -50,7 +50,7 @@ export function PwaView({
     return 'Обновить и перезапустить';
   }
 
-  if (confirmUpdate)
+  if (confirmUpdate) {
     return (
       <>
         <DialogBody className={css('dialog-body pwa-body')} data-testid="dialog-body">
@@ -85,6 +85,7 @@ export function PwaView({
         </DialogFooter>
       </>
     );
+  }
 
   function getOfflineLabel() {
     if (pwa.offline === 'ready') {

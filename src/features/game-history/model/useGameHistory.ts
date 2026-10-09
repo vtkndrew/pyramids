@@ -22,9 +22,13 @@ export function useGameHistory(repository: SaveRepository, flush: () => Promise<
           setMore(result.more);
         }
       } catch {
-        if (live) setError(true);
+        if (live) {
+          setError(true);
+        }
       } finally {
-        if (live) setLoading(false);
+        if (live) {
+          setLoading(false);
+        }
       }
     })();
 

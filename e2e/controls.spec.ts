@@ -8,7 +8,9 @@ const button = (page: Page, name: string) => page.getByRole('button', { name, ex
 async function start(page: Page, hardcore = false) {
   await page.goto('/');
 
-  if (hardcore) await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
+  if (hardcore) {
+    await page.getByRole('radio', { name: 'Хардкор', exact: true }).check();
+  }
 
   await button(page, 'Начать игру').click();
   await button(page, 'Играть').click();
@@ -17,7 +19,9 @@ async function start(page: Page, hardcore = false) {
 async function center(page: Page, index: number) {
   const rect = await rod(page, index).boundingBox();
 
-  if (!rect) throw new Error('Expected visible element bounds');
+  if (!rect) {
+    throw new Error('Expected visible element bounds');
+  }
 
   return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
 }
@@ -27,42 +31,48 @@ async function pointer(page: Page, touch: boolean) {
 
   return {
     async down(point: { x: number; y: number }) {
-      if (cdp)
+      if (cdp) {
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
           touchPoints: [{ ...point, id: 1 }],
         });
-      else {
+      } else {
         await page.mouse.move(point.x, point.y);
         await page.mouse.down();
       }
     },
     async move(point: { x: number; y: number }) {
-      if (cdp)
+      if (cdp) {
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
           touchPoints: [{ ...point, id: 1 }],
         });
-      else await page.mouse.move(point.x, point.y, { steps: 5 });
+      } else {
+        await page.mouse.move(point.x, point.y, { steps: 5 });
+      }
     },
     async up() {
-      if (cdp)
+      if (cdp) {
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchEnd',
           touchPoints: [],
         });
-      else await page.mouse.up();
+      } else {
+        await page.mouse.up();
+      }
     },
     async cancel() {
-      if (cdp)
+      if (cdp) {
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchCancel',
           touchPoints: [],
         });
-      else await page.keyboard.press('Escape');
+      } else {
+        await page.keyboard.press('Escape');
+      }
     },
     async second(point: { x: number; y: number }) {
-      if (cdp)
+      if (cdp) {
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
           touchPoints: [
@@ -70,6 +80,7 @@ async function pointer(page: Page, touch: boolean) {
             { x: point.x + 20, y: point.y + 20, id: 2 },
           ],
         });
+      }
     },
     async dispose() {
       await cdp?.detach();
@@ -91,9 +102,11 @@ test('control dialog defaults, cancellation, timer and manual pause', async ({ p
   await page.keyboard.press('Escape');
   await expect(page.getByRole('slider')).toHaveValue('7');
 
-  if (await page.locator('[data-compact=true]').count())
+  if (await page.locator('[data-compact=true]').count()) {
     await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
-  else await expect(button(page, 'Начать игру')).toBeFocused();
+  } else {
+    await expect(button(page, 'Начать игру')).toBeFocused();
+  }
 
   await button(page, 'Начать игру').click();
   await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
@@ -260,7 +273,9 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
     await input.move(await center(page, 2));
     await input.cancel();
 
-    if (!isMobile) await input.up();
+    if (!isMobile) {
+      await input.up();
+    }
 
     await expectStep(page, 0, 0);
     await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
@@ -278,7 +293,9 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
     await input.move(await center(page, 2));
     const viewport = page.viewportSize();
 
-    if (!viewport) throw new Error('Expected configured viewport');
+    if (!viewport) {
+      throw new Error('Expected configured viewport');
+    }
 
     await page.setViewportSize({ ...viewport, width: viewport.width - 10 });
     await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
@@ -309,7 +326,9 @@ test('cancelled gestures, second touch and resizing never commit a move', async 
     await page.keyboard.press('Enter');
     await input.up();
 
-    if (compact) await button(page, 'Управление').click();
+    if (compact) {
+      await button(page, 'Управление').click();
+    }
 
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.locator('[data-testid~=drag-ghost]')).toHaveCount(0);
@@ -375,9 +394,11 @@ test('dialog keeps focus inside and supports reduced motion', async ({ page }, t
   });
   await page.keyboard.press('Escape');
 
-  if (await page.locator('[data-compact=true]').count())
+  if (await page.locator('[data-compact=true]').count()) {
     await expect(page.getByRole('heading', { name: 'Ваша головоломка' })).toBeFocused();
-  else await expect(button(page, 'Начать игру')).toBeFocused();
+  } else {
+    await expect(button(page, 'Начать игру')).toBeFocused();
+  }
 });
 
 for (const width of [768, 1440]) {
@@ -424,11 +445,12 @@ for (const width of [768, 1440]) {
         await expect(page.locator('button[data-testid~=rod]')).toHaveCount(rods);
         await assertFits();
 
-        if (rods === 6 && disks === 10)
+        if (rods === 6 && disks === 10) {
           await page.screenshot({
             path: testInfo.outputPath('six-rods.png'),
             fullPage: true,
           });
+        }
 
         await menuAction(page, 'Настройки');
       }

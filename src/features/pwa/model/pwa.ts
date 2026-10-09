@@ -61,7 +61,9 @@ export function isIOS() {
 }
 
 async function checkOfflineCache() {
-  if (!registration?.active || registration.active.state !== 'activated') return;
+  if (!registration?.active || registration.active.state !== 'activated') {
+    return;
+  }
 
   const { scope } = registration;
 
@@ -111,10 +113,13 @@ async function checkForUpdate() {
     !navigator.onLine ||
     registration.installing ||
     document.visibilityState !== 'visible'
-  )
+  ) {
     return;
+  }
 
-  if (Date.now() - lastUpdateCheck < HOUR) return;
+  if (Date.now() - lastUpdateCheck < HOUR) {
+    return;
+  }
 
   lastUpdateCheck = Date.now();
 
@@ -127,7 +132,9 @@ async function checkForUpdate() {
 
 /** Called once before React mounts, including in StrictMode. */
 export function initPwa() {
-  if (started) return;
+  if (started) {
+    return;
+  }
 
   started = true;
   const standalone = window.matchMedia('(display-mode: standalone)');
@@ -155,7 +162,9 @@ export function initPwa() {
     });
   });
 
-  if (!import.meta.env.PROD) return;
+  if (!import.meta.env.PROD) {
+    return;
+  }
 
   if (!('serviceWorker' in navigator) || !window.isSecureContext) {
     patch({ offline: 'unavailable' });
@@ -168,7 +177,9 @@ export function initPwa() {
       const controller = navigator.serviceWorker.controller;
 
       const reloadWhenActivated = () => {
-        if (!reloadRequested || controller?.state !== 'activated') return;
+        if (!reloadRequested || controller?.state !== 'activated') {
+          return;
+        }
 
         controller.removeEventListener('statechange', reloadWhenActivated);
         reloadRequested = false;
@@ -196,15 +207,22 @@ export function initPwa() {
       patch({ needRefresh: Boolean(reg.waiting) });
 
       const watch = (worker: ServiceWorker | null) => {
-        if (!worker) return;
+        if (!worker) {
+          return;
+        }
 
         const changed = () => {
-          if (worker.state === 'installed' && reg.active)
+          if (worker.state === 'installed' && reg.active) {
             patch({ needRefresh: Boolean(reg.waiting) });
+          }
 
-          if (worker.state === 'activated') void checkOfflineCache();
+          if (worker.state === 'activated') {
+            void checkOfflineCache();
+          }
 
-          if (worker.state === 'redundant' && !reg.active) patch({ offline: 'unavailable' });
+          if (worker.state === 'redundant' && !reg.active) {
+            patch({ offline: 'unavailable' });
+          }
         };
 
         worker.addEventListener('statechange', changed);
@@ -226,7 +244,9 @@ export function initPwa() {
 }
 
 export async function installApp() {
-  if (!installPrompt || state.installBusy) return;
+  if (!installPrompt || state.installBusy) {
+    return;
+  }
 
   const prompt = installPrompt;
 
@@ -253,7 +273,9 @@ export async function installApp() {
 }
 
 export function applyUpdate() {
-  if (state.updateBusy) return;
+  if (state.updateBusy) {
+    return;
+  }
 
   const waiting = registration?.waiting;
 

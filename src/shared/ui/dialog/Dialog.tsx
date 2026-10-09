@@ -27,7 +27,9 @@ export default function Dialog({
   useEffect(() => {
     const element = dialog.current;
 
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const previousFocus = document.activeElement as HTMLElement | null;
 
@@ -38,7 +40,9 @@ export default function Dialog({
       element.close();
       document.body.classList.remove('modal-open');
       void Promise.resolve().then(() => {
-        if (document.querySelector('dialog[open]')) return;
+        if (document.querySelector('dialog[open]')) {
+          return;
+        }
 
         const target =
           previousFocus?.isConnected &&
@@ -64,7 +68,9 @@ export default function Dialog({
         onClose();
       }}
       onKeyDown={(event) => {
-        if (event.key !== 'Tab') return;
+        if (event.key !== 'Tab') {
+          return;
+        }
 
         const focusable = [
           ...event.currentTarget.querySelectorAll<HTMLElement>(
@@ -76,7 +82,9 @@ export default function Dialog({
             (!(el instanceof HTMLInputElement) || el.type !== 'radio' || el.checked),
         );
 
-        if (!focusable.length) return;
+        if (!focusable.length) {
+          return;
+        }
 
         // Safari may omit buttons from its default Tab order. Keep a consistent
         // keyboard path through every control in all supported browsers.

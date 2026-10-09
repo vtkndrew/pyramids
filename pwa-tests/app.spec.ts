@@ -7,8 +7,9 @@ async function appPanel(page: Page) {
   if (
     !(await button(page, 'Установить приложение').count()) &&
     !(await button(page, 'Приложение').count())
-  )
+  ) {
     await button(page, 'Меню').click();
+  }
 
   await page.getByRole('button', { name: /^(Установить приложение|Приложение)$/ }).click();
 }
@@ -55,11 +56,13 @@ async function loseNetwork(context: BrowserContext, browserName: string) {
   // WebKit 1.63 rejects even literal SW responses with setOffline:
   // https://github.com/microsoft/playwright/issues/42775
   // The test server drops every connection for this context instead.
-  if (browserName === 'webkit')
+  if (browserName === 'webkit') {
     await context.addCookies([
       { name: 'pwa_test_offline', value: '1', url: 'http://127.0.0.1:4175' },
     ]);
-  else await context.setOffline(true);
+  } else {
+    await context.setOffline(true);
+  }
 }
 
 test('manifest, icons and worker are scoped to the repository', async ({ page, request }) => {
@@ -69,7 +72,9 @@ test('manifest, icons and worker are scoped to the repository', async ({ page, r
 
   expect(href).toBe('/pyramids/manifest.webmanifest');
 
-  if (!href) throw new Error('Missing manifest link');
+  if (!href) {
+    throw new Error('Missing manifest link');
+  }
 
   const manifest = await (await request.get(href)).json();
 
@@ -160,7 +165,9 @@ test('cached app cold-starts offline and keeps all game actions usable', async (
   await expect(next.getByRole('timer')).toHaveText('00:00');
   const r = await rod(next, 1).boundingBox();
 
-  if (!r) throw new Error('Expected visible element bounds');
+  if (!r) {
+    throw new Error('Expected visible element bounds');
+  }
 
   await next.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
   await next.mouse.down();
@@ -280,7 +287,9 @@ test('application panel preserves draft, manual pause, focus and compact bounds'
   ]) {
     const r = await locator.boundingBox();
 
-    if (!r) throw new Error('Expected visible element bounds');
+    if (!r) {
+      throw new Error('Expected visible element bounds');
+    }
 
     expect(r.y).toBeGreaterThanOrEqual(0);
     expect(r.y + r.height).toBeLessThanOrEqual(280);
@@ -303,7 +312,9 @@ test('application panel preserves draft, manual pause, focus and compact bounds'
   await expect(button(page, 'Меню')).toBeFocused();
   await expect(page.getByRole('heading', { name: 'Игра на паузе' })).toBeVisible();
 
-  if (time === null) throw new Error('Missing timer');
+  if (time === null) {
+    throw new Error('Missing timer');
+  }
 
   await expect(page.getByRole('timer')).toHaveText(time);
   await page.locator('[data-testid~=pause-button]').click();
@@ -335,8 +346,9 @@ test('new build waits for consent; deferral preserves game; activation cleans on
     const original = IDBObjectStore.prototype.put;
 
     IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore['put']>) {
-      if (document.documentElement.dataset.rejectSave === 'yes')
+      if (document.documentElement.dataset.rejectSave === 'yes') {
         throw new DOMException('Disk full', 'QuotaExceededError');
+      }
 
       return original.apply(this, args);
     };
@@ -362,7 +374,9 @@ test('new build waits for consent; deferral preserves game; activation cleans on
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
 
-    if (!registration) throw new Error('Missing service worker registration');
+    if (!registration) {
+      throw new Error('Missing service worker registration');
+    }
 
     await registration.update();
   });
@@ -418,7 +432,9 @@ test('new build waits for consent; deferral preserves game; activation cleans on
     await page.evaluate(async (oldScript) => {
       const cacheName = (await caches.keys()).find((name) => name.startsWith('pyramids-precache-'));
 
-      if (!cacheName || !oldScript) throw new Error('Missing cache or previous script URL');
+      if (!cacheName || !oldScript) {
+        throw new Error('Missing cache or previous script URL');
+      }
 
       const cache = await caches.open(cacheName);
 

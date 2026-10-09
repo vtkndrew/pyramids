@@ -55,8 +55,11 @@ test('reload restores only latest game, future history, control and time; older 
   await expect(button(page, 'Продолжить партию')).toBeVisible();
   await button(page, 'Новая игра').click();
 
-  if (await page.locator('[data-compact=true]').count()) await page.keyboard.press('Escape');
-  else await button(page, 'Назад к игре').click();
+  if (await page.locator('[data-compact=true]').count()) {
+    await page.keyboard.press('Escape');
+  } else {
+    await button(page, 'Назад к игре').click();
+  }
 
   await expect(button(page, 'Продолжить партию')).toBeVisible();
   await expect(page.locator('[data-testid~=rod]')).toHaveCount(0);
@@ -94,7 +97,9 @@ test('background pauses automatically and opening/cancelling settings does not c
 
   await page.clock.fastForward(10000);
 
-  if (elapsed === null) throw new Error('Missing saved timer');
+  if (elapsed === null) {
+    throw new Error('Missing saved timer');
+  }
 
   await expect(page.getByRole('timer')).toHaveText(elapsed);
   await page.evaluate(() => {
@@ -152,8 +157,9 @@ test('victory is one record and undo/redo updates its status after reload', asyn
     [2, 1],
     [2, 3],
     [1, 3],
-  ])
+  ]) {
     await move(page, a, b);
+  }
 
   await saved(page, 7);
   await page.reload();
@@ -272,8 +278,9 @@ test('storage and persistence denial leave the game playable; retry recovers', a
     const original = IDBFactory.prototype.open;
 
     IDBFactory.prototype.open = function (...args: Parameters<IDBFactory['open']>) {
-      if (!document.documentElement.dataset.allowStorage)
+      if (!document.documentElement.dataset.allowStorage) {
         throw new DOMException('Unavailable', 'SecurityError');
+      }
 
       return original.apply(this, args);
     };
@@ -290,7 +297,9 @@ test('storage and persistence denial leave the game playable; retry recovers', a
     document.documentElement.dataset.allowStorage = 'yes';
   });
 
-  if (await page.locator('[data-compact=true]').count()) await button(page, 'Меню').click();
+  if (await page.locator('[data-compact=true]').count()) {
+    await button(page, 'Меню').click();
+  }
 
   await button(page, 'Повторить сохранение').click();
   await saved(page, 1);
@@ -319,7 +328,9 @@ test('59048-move save restores all undo/redo states, appends one board and pagin
     const step = (from: number, to: number) => {
       const board = history.at(-1);
 
-      if (moveError(board, from, to, 'hardcore')) throw new Error('invalid move');
+      if (moveError(board, from, to, 'hardcore')) {
+        throw new Error('invalid move');
+      }
 
       const next = board.map((rod: number[]) => [...rod]);
 
@@ -328,7 +339,9 @@ test('59048-move save restores all undo/redo states, appends one board and pagin
     };
 
     const solve = (n: number, from: number, to: number): void => {
-      if (!n) return;
+      if (!n) {
+        return;
+      }
 
       solve(n - 1, from, to);
       step(from, 1);
@@ -356,7 +369,9 @@ test('59048-move save restores all undo/redo states, appends one board and pagin
     const original = IDBObjectStore.prototype.put;
 
     IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore['put']>) {
-      if (this.name === 'boards') puts++;
+      if (this.name === 'boards') {
+        puts++;
+      }
 
       return original.apply(this, args);
     };
@@ -369,18 +384,22 @@ test('59048-move save restores all undo/redo states, appends one board and pagin
 
     game = gameReducer(loaded.game, { type: 'resume' });
 
-    for (let n = 0; n < 59048; n++) game = gameReducer(game, { type: 'undo' });
+    for (let n = 0; n < 59048; n++) {
+      game = gameReducer(game, { type: 'undo' });
+    }
 
     await reader.commit(snap());
     const undone = game.cursor === 0;
 
-    for (let n = 0; n < 59048; n++) game = gameReducer(game, { type: 'redo' });
+    for (let n = 0; n < 59048; n++) {
+      game = gameReducer(game, { type: 'redo' });
+    }
 
     await reader.commit(snap());
     const redone = isWon(game);
     const boardWrites = puts;
 
-    for (let n = 0; n < 51; n++)
+    for (let n = 0; n < 51; n++) {
       await reader.commit({
         id: `short-${n}`,
         startedAt: 10 + n,
@@ -388,6 +407,7 @@ test('59048-move save restores all undo/redo states, appends one board and pagin
         control: 'swipe',
         elapsed: 0,
       });
+    }
 
     const first = await reader.list(50);
     const second = await reader.list(100);
@@ -433,7 +453,7 @@ test('history paginates in a bounded modal and only the latest record can reopen
     const game = createGame({ rods: 3, disks: 5, mode: 'classic' });
 
     // Equal wall-clock timestamps must not scramble the most recently started game.
-    for (let n = 0; n < 52; n++)
+    for (let n = 0; n < 52; n++) {
       await repo.commit({
         id: `game-${n}`,
         startedAt: 1000,
@@ -441,6 +461,7 @@ test('history paginates in a bounded modal and only the latest record can reopen
         control: 'drag',
         elapsed: n * 1000,
       });
+    }
   });
   await page.reload();
   await button(page, 'История игр').click();
@@ -461,17 +482,23 @@ test('history paginates in a bounded modal and only the latest record can reopen
       await page.evaluate(() => {
         const dialogElement = document.querySelector('dialog');
 
-        if (!dialogElement) throw new Error('Missing dialog element');
+        if (!dialogElement) {
+          throw new Error('Missing dialog element');
+        }
 
         const dialog = dialogElement.getBoundingClientRect();
         const footerElement = document.querySelector('[data-testid~=dialog-footer]');
 
-        if (!footerElement) throw new Error('Missing footer element');
+        if (!footerElement) {
+          throw new Error('Missing footer element');
+        }
 
         const footer = footerElement.getBoundingClientRect();
         const body = document.querySelector('[data-testid~=saved-games]');
 
-        if (!body) throw new Error('Missing history body');
+        if (!body) {
+          throw new Error('Missing history body');
+        }
 
         return (
           dialog.top >= 0 &&
@@ -496,7 +523,7 @@ test('history paginates in a bounded modal and only the latest record can reopen
   await expect(button(page, 'Вернуться к сохранению')).toBeFocused();
 });
 
-for (const version of [1, 99])
+for (const version of [1, 99]) {
   test(`corrupt or incompatible latest save is never replaced with an older game: ${version}`, async ({
     page,
   }) => {
@@ -541,10 +568,11 @@ for (const version of [1, 99])
       ).toBeVisible();
       await page.keyboard.press('Escape');
       await button(page, 'Настроить игру').click();
-    } else
+    } else {
       await expect(
         page.getByText('Последнее сохранение повреждено.', { exact: false }).first(),
       ).toBeVisible();
+    }
 
     await button(page, 'История игр').click();
     await expect(page.locator('[data-testid~=saved-game]')).toHaveCount(2);
@@ -558,3 +586,4 @@ for (const version of [1, 99])
       await expect(page.locator('[data-testid~=saved-game]')).toHaveCount(3);
     }
   });
+}

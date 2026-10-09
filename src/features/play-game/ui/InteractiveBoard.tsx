@@ -35,7 +35,9 @@ export default function InteractiveBoard({
       onPointerCancel: cancel,
       onLostPointerCapture: cancel,
       onClick: (event) => {
-        if (allowClick(event.detail)) onRod?.(rod);
+        if (allowClick(event.detail)) {
+          onRod?.(rod);
+        }
       },
     }),
     [allowClick, cancel, down, onRod, up, update],

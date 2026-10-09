@@ -47,8 +47,9 @@ test('previous production build upgrades with its saved game and cold-starts off
   await page.getByRole('radio', { name: 'Нажатия', exact: true }).check();
   await button(page, 'Играть').click();
 
-  for (const n of [1, 3, 1, 2])
+  for (const n of [1, 3, 1, 2]) {
     await page.getByRole('button', { name: new RegExp(`^Стержень ${n}`) }).click();
+  }
 
   await button(page, 'Отменить').click();
   await expect.poll(async () => (await readSave(page)).head.cursor).toBe(1);
@@ -70,7 +71,9 @@ test('previous production build upgrades with its saved game and cold-starts off
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
 
-    if (!registration) throw new Error('Missing service worker registration');
+    if (!registration) {
+      throw new Error('Missing service worker registration');
+    }
 
     await registration.update();
   });
@@ -109,11 +112,13 @@ test('previous production build upgrades with its saved game and cold-starts off
   await expect(page.getByText('Готово к работе без интернета.', { exact: true })).toBeVisible();
   await page.close();
 
-  if (browserName === 'webkit')
+  if (browserName === 'webkit') {
     await context.addCookies([
       { name: 'pwa_test_offline', value: '1', url: 'http://127.0.0.1:4175' },
     ]);
-  else await context.setOffline(true);
+  } else {
+    await context.setOffline(true);
+  }
 
   const offline = await context.newPage();
 

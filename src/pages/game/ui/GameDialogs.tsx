@@ -63,8 +63,9 @@ export function GameDialogs({
   const backToGame = useCallback(() => setPanel(null), [setPanel]);
 
   const confirmControls = useCallback(() => {
-    if (newGameControls) startGame(draft, controlDraft);
-    else {
+    if (newGameControls) {
+      startGame(draft, controlDraft);
+    } else {
       setControl(controlDraft);
       setPanel(null);
     }

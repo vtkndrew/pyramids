@@ -19,7 +19,9 @@ try {
   let count = 0;
 
   for (const [location, pkg] of Object.entries(lock.packages)) {
-    if (location === '') continue; // The root project is not downloaded.
+    if (location === '') {
+      continue;
+    } // The root project is not downloaded.
 
     count++;
 

@@ -35,8 +35,11 @@ export default function GamePage() {
   const { conflict, incompatible, flush } = saved;
 
   const retrySave = useCallback(() => {
-    if (conflict || incompatible) setPanel('storage');
-    else void flush().catch(() => {});
+    if (conflict || incompatible) {
+      setPanel('storage');
+    } else {
+      void flush().catch(() => {});
+    }
   }, [conflict, flush, incompatible, setPanel]);
 
   const backFromSettings = useCallback(
@@ -49,7 +52,7 @@ export default function GamePage() {
     [openPanel, saved.latest, setPanel],
   );
 
-  if (saved.loading)
+  if (saved.loading) {
     return (
       <div data-compact={compact} className={css(`app-shell ${compact ? 'compact-app' : ''}`)}>
         <main role="status" className={css('save-loading')}>
@@ -57,6 +60,7 @@ export default function GamePage() {
         </main>
       </div>
     );
+  }
 
   const saveNotice = saved.error && (
     <div role="alert" className={css('save-notice')}>

@@ -6,7 +6,9 @@ export function formatElapsed(milliseconds: number): string {
   const minutes = Math.floor(seconds / 60) % 60;
   const parts = [minutes, seconds % 60].map((value) => String(value).padStart(2, '0'));
 
-  if (hours > 0) parts.unshift(String(hours).padStart(2, '0'));
+  if (hours > 0) {
+    parts.unshift(String(hours).padStart(2, '0'));
+  }
 
   return parts.join(':');
 }
@@ -39,7 +41,9 @@ export function useElapsedTimer() {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      if (clock.current.started !== null) setElapsed(read());
+      if (clock.current.started !== null) {
+        setElapsed(read());
+      }
     }, 250);
 
     return () => window.clearInterval(interval);

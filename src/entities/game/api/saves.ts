@@ -33,9 +33,13 @@ export class SaveRepository {
   private incompatible = false;
   constructor(private name = `pyramids-saves:${import.meta.env.BASE_URL}`) {}
   private open() {
-    if (this.db) return Promise.resolve(this.db);
+    if (this.db) {
+      return Promise.resolve(this.db);
+    }
 
-    if (this.opening) return this.opening;
+    if (this.opening) {
+      return this.opening;
+    }
 
     this.opening = new Promise<IDBDatabase>((resolve, reject) => {
       const req = indexedDB.open(this.name, 1);
@@ -93,7 +97,9 @@ export class SaveRepository {
     this.persisted = undefined;
     this.incompatible = head !== undefined && head.version !== SAVE_VERSION;
 
-    if (!head) return null;
+    if (!head) {
+      return null;
+    }
 
     const snapshot = validateSnapshot(head, boards);
 
@@ -102,9 +108,13 @@ export class SaveRepository {
     return snapshot;
   }
   async commit(snapshot: Snapshot) {
-    if (!this.initialized) await this.load();
+    if (!this.initialized) {
+      await this.load();
+    }
 
-    if (this.incompatible) throw new NewerSave('Обновите приложение, чтобы прочитать сохранение.');
+    if (this.incompatible) {
+      throw new NewerSave('Обновите приложение, чтобы прочитать сохранение.');
+    }
 
     const db = await this.open();
     const tx = db.transaction(['meta', 'boards', 'summaries'], 'readwrite');
@@ -114,8 +124,9 @@ export class SaveRepository {
       const meta = tx.objectStore('meta');
       const actual = await request<Head | undefined>(meta.get('latest'));
 
-      if (actual?.id !== this.head?.id || actual?.revision !== this.head?.revision)
+      if (actual?.id !== this.head?.id || actual?.revision !== this.head?.revision) {
         throw new SaveConflict('Партия изменена в другом окне.');
+      }
 
       const boards = tx.objectStore('boards');
       const summaries = tx.objectStore('summaries');
@@ -126,11 +137,12 @@ export class SaveRepository {
         if (actual) {
           const old = await request<Summary | undefined>(summaries.get(actual.id));
 
-          if (old)
+          if (old) {
             summaries.put({
               ...old,
               status: old.status === 'won' ? 'won' : 'abandoned',
             });
+          }
         }
 
         boards.clear();
@@ -139,7 +151,9 @@ export class SaveRepository {
       const history = snapshot.game.history;
 
       if (!previous) {
-        if (sameGame) boards.clear();
+        if (sameGame) {
+          boards.clear();
+        }
 
         history.forEach((board, index) => {
           boards.put(board, index);
@@ -149,11 +163,15 @@ export class SaveRepository {
         // and cursor/time updates never serialize the complete history.
         let prefix = Math.min(previous.history.length, history.length);
 
-        while (prefix > 0 && previous.history[prefix - 1] !== history[prefix - 1]) prefix--;
+        while (prefix > 0 && previous.history[prefix - 1] !== history[prefix - 1]) {
+          prefix--;
+        }
 
         boards.delete(IDBKeyRange.lowerBound(prefix));
 
-        for (let i = prefix; i < history.length; i++) boards.put(history[i], i);
+        for (let i = prefix; i < history.length; i++) {
+          boards.put(history[i], i);
+        }
       }
 
       const order = sameGame ? (actual.order ?? actual.revision) : (actual?.revision ?? 0) + 1;
@@ -231,8 +249,9 @@ export class SaveRepository {
             Number.isSafeInteger(record.moves) &&
             record.moves >= 0 &&
             ['active', 'won', 'abandoned'].includes(record.status)
-          )
+          ) {
             records.push(record);
+          }
         } catch {
           /* Skip unreadable summary; never delete it. */
         }

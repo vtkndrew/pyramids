@@ -20,7 +20,9 @@ describe('save queue', () => {
     let unavailable = true;
     const repository = {
       commit: async (value: Snapshot) => {
-        if (unavailable) throw new Error('quota');
+        if (unavailable) {
+          throw new Error('quota');
+        }
 
         committed.push(value);
       },
@@ -48,7 +50,9 @@ describe('save queue', () => {
     const committed: number[] = [];
     const repository = {
       commit: async (value: Snapshot) => {
-        if (!committed.length) await gate;
+        if (!committed.length) {
+          await gate;
+        }
 
         committed.push(value.elapsed);
       },

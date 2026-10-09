@@ -12,13 +12,20 @@ export class SaveQueue {
     private onSaved: () => void,
   ) {}
   enqueue(snapshot: Snapshot) {
-    if (this.pending.at(-1)?.id === snapshot.id) this.pending[this.pending.length - 1] = snapshot;
-    else this.pending.push(snapshot);
+    if (this.pending.at(-1)?.id === snapshot.id) {
+      this.pending[this.pending.length - 1] = snapshot;
+    } else {
+      this.pending.push(snapshot);
+    }
 
-    if (!this.failed) void this.flush().catch(() => {});
+    if (!this.failed) {
+      void this.flush().catch(() => {});
+    }
   }
   async flush() {
-    if (this.running) return this.running;
+    if (this.running) {
+      return this.running;
+    }
 
     this.failed = false;
     this.running = (async () => {
@@ -34,7 +41,9 @@ export class SaveQueue {
         }
 
         // An in-flight checkpoint may have been replaced with a newer one.
-        if (this.pending[0] === snapshot) this.pending.shift();
+        if (this.pending[0] === snapshot) {
+          this.pending.shift();
+        }
 
         this.onSaved();
       }

@@ -23,8 +23,9 @@ for (const version of ['one', 'two']) {
       {
         name: 'test-build-marker',
         transform(code, id) {
-          if (id.endsWith('/src/main.tsx'))
+          if (id.endsWith('/src/main.tsx')) {
             return `${code}\ndocument.documentElement.dataset.pwaTestBuild = ${JSON.stringify(version)};`;
+          }
         },
       },
     ],
@@ -96,7 +97,9 @@ server.listen(4175, '127.0.0.1', () =>
 let closing = false;
 
 async function close() {
-  if (closing) return;
+  if (closing) {
+    return;
+  }
 
   closing = true;
   server.close();

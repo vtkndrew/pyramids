@@ -73,8 +73,9 @@ test('victory, complete undo and redo', async ({ page }) => {
     [2, 1],
     [2, 3],
     [1, 3],
-  ])
+  ]) {
     await move(page, from, to);
+  }
 
   await expect(page.getByRole('heading', { name: 'Всё получилось!' })).toBeVisible();
   await expect(rod(page, 3)).toBeDisabled();
@@ -82,13 +83,15 @@ test('victory, complete undo and redo', async ({ page }) => {
   await page.getByRole('button', { name: 'Отменить', exact: true }).click();
   await expect(rod(page, 3)).toBeEnabled();
 
-  for (let i = 0; i < 6; i++)
+  for (let i = 0; i < 6; i++) {
     await page.getByRole('button', { name: 'Отменить', exact: true }).click();
+  }
 
   await expectStep(page, 0, 7);
 
-  for (let i = 0; i < 7; i++)
+  for (let i = 0; i < 7; i++) {
     await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+  }
 
   await expect(page.getByRole('heading', { name: 'Всё получилось!' })).toBeVisible();
 });
@@ -143,7 +146,9 @@ test('keyboard can start, select, move, undo and redo', async ({ page }) => {
     await page.getByRole('region', { name: 'Игровое поле' }).focus();
   }
 
-  if (!(await page.locator('[data-compact=true]').count())) await page.keyboard.press('Tab'); // Game field
+  if (!(await page.locator('[data-compact=true]').count())) {
+    await page.keyboard.press('Tab');
+  } // Game field
 
   await page.keyboard.press('Tab'); // First rod
   await expect(rod(page, 1)).toBeFocused();
@@ -236,8 +241,9 @@ test('timer stops on victory, resumes after undo, and stops again on redo', asyn
     [2, 1],
     [2, 3],
     [1, 3],
-  ])
+  ]) {
     await move(page, from, to);
+  }
 
   await expect(page.getByRole('status')).toContainText('Время: 00:03');
   await page.clock.fastForward(60_000);
@@ -396,7 +402,9 @@ test('hardcore victory in 26 moves, pause unavailable until undo', async ({ page
   await page.clock.runFor(3000);
 
   async function solveAdjacent(n: number, from: number, to: number): Promise<void> {
-    if (!n) return;
+    if (!n) {
+      return;
+    }
 
     await solveAdjacent(n - 1, from, to);
     await move(page, from, 2);

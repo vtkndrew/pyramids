@@ -18,7 +18,9 @@ export function useSessionLifecycle({
 }) {
   useEffect(() => {
     const interval = window.setInterval(() => {
-      if (running) checkpoint();
+      if (running) {
+        checkpoint();
+      }
     }, 1000);
 
     return () => window.clearInterval(interval);
@@ -33,7 +35,9 @@ export function useSessionLifecycle({
     };
 
     const visibility = () => {
-      if (document.visibilityState === 'hidden') hide();
+      if (document.visibilityState === 'hidden') {
+        hide();
+      }
     };
 
     document.addEventListener('visibilitychange', visibility);

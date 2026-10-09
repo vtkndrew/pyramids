@@ -36,8 +36,9 @@ export class InvalidSave extends Error {}
 export class NewerSave extends Error {}
 
 export function validateSnapshot(head: Head, history: Board[]): Snapshot {
-  if (head.version !== SAVE_VERSION)
+  if (head.version !== SAVE_VERSION) {
     throw new NewerSave('Неизвестная версия сохранения. Обновите приложение.');
+  }
 
   try {
     const initial = createGame(head.config);
@@ -60,18 +61,23 @@ export function validateSnapshot(head: Head, history: Board[]): Snapshot {
       !history.length ||
       !['tap', 'drag', 'swipe'].includes(head.control) ||
       (head.control === 'swipe' && head.config.mode !== 'hardcore')
-    )
+    ) {
       throw new Error();
+    }
 
     for (let i = 0; i < history.length; i++) {
       const board = history[i];
 
-      if (!Array.isArray(board) || board.length !== head.config.rods) throw new Error();
+      if (!Array.isArray(board) || board.length !== head.config.rods) {
+        throw new Error();
+      }
 
       const disks = new Set<number>();
 
       for (const rod of board) {
-        if (!Array.isArray(rod)) throw new Error();
+        if (!Array.isArray(rod)) {
+          throw new Error();
+        }
 
         rod.forEach((disk, index) => {
           if (
@@ -80,17 +86,22 @@ export function validateSnapshot(head: Head, history: Board[]): Snapshot {
             disk > head.config.disks ||
             disks.has(disk) ||
             (index > 0 && rod[index - 1] <= disk)
-          )
+          ) {
             throw new Error();
+          }
 
           disks.add(disk);
         });
       }
 
-      if (disks.size !== head.config.disks) throw new Error();
+      if (disks.size !== head.config.disks) {
+        throw new Error();
+      }
 
       if (i === 0) {
-        if (JSON.stringify(board) !== JSON.stringify(initial.history[0])) throw new Error();
+        if (JSON.stringify(board) !== JSON.stringify(initial.history[0])) {
+          throw new Error();
+        }
 
         continue;
       }
@@ -102,18 +113,23 @@ export function validateSnapshot(head: Head, history: Board[]): Snapshot {
       if (
         moveError(previous, from, to, head.config.mode) ||
         previous[previous.length - 1].length === head.config.disks
-      )
+      ) {
         throw new Error();
+      }
 
       const next = previous.map((rod) => [...rod]);
 
       const disk = next[from].pop();
 
-      if (disk === undefined) throw new Error('Missing source disk');
+      if (disk === undefined) {
+        throw new Error('Missing source disk');
+      }
 
       next[to].push(disk);
 
-      if (JSON.stringify(next) !== JSON.stringify(board)) throw new Error();
+      if (JSON.stringify(next) !== JSON.stringify(board)) {
+        throw new Error();
+      }
     }
 
     return {

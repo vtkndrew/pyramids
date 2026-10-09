@@ -45,7 +45,9 @@ export default function BoardView({
       ref={root}
       onDragStart={(event) => event.preventDefault()}
       onContextMenu={(event) => {
-        if (control !== 'tap') event.preventDefault();
+        if (control !== 'tap') {
+          event.preventDefault();
+        }
       }}
       role="region"
       aria-label={onRod ? 'Игровое поле' : 'Начальная позиция'}
